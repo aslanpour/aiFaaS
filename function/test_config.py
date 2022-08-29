@@ -21,6 +21,8 @@ curl -X POST -i -F  image_file=@./images/image1.jpg  http://localhost:5000/
 curl -X POST -i http://localhost:5000/config/write  -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"config":{"Model": {"supported_resources_gpu": "yes"}}}'
 #now on, run on GPU
 curl -X POST -i http://localhost:5000/config/write  -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"config":{"Model": {"run_on": "gpu"}}}'
+#same for function on tpu
+curl -X POST -i 10.0.0.90:31112/function/w5-ssd/config/write  -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"config":{"Model": {"run_on": "tpu"}}}'
 #test GPU
 curl -X POST -i -F  image_file=@./images/image1.jpg  http://localhost:5000/
 #Note: convert curl commands in python: https://curlconverter.com/

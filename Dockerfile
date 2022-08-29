@@ -3,9 +3,9 @@ FROM --platform=${TARGETPLATFORM:-linux/arm64} openfaas/of-watchdog:0.7.7 as wat
 #To build non-GPU enabled image, use python:3.7-slim-buster base image instead of dustynv/jetson-inference:r32.7.1 and comment  lines titled "[GPU]".
 
 #Image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
-# FROM --platform=${TARGETPLATFORM:-linux/arm64} dustynv/jetson-inference:r32.7.1
+FROM --platform=${TARGETPLATFORM:-linux/arm64} dustynv/jetson-inference:r32.7.1
 #[CPU/TPU]
-FROM --platform=${TARGETPLATFORM:-linux/arm64} python:3.7-slim-buster
+# FROM --platform=${TARGETPLATFORM:-linux/arm64} python:3.7-slim-buster
 
 #Command to use this Docker image
 #docker build --build-arg CACHEBUST=$(date +%s) --tag localhost:6000/image_name:image_tag .
@@ -154,21 +154,21 @@ RUN wget --content-disposition https://raw.githubusercontent.com/google-coral/te
 #If one needs a different location, you may edit jetson-inference and rebuild it as suggested here https://forums.developer.nvidia.com/t/how-to-load-models-from-a-custom-directory/223016
 
 #[GPU]
-# WORKDIR /home/app/networks/
+WORKDIR /home/app/networks/
 #Model 1: SSD-Mobilenet-v1
 #GPU model
 #[GPU]
-# RUN wget https://nvidia.box.com/shared/static/0pg3xi9opwio65df14rdgrtw40ivbk1o.gz -O SSD-Mobilenet-v1.tar.gz
+RUN wget https://nvidia.box.com/shared/static/0pg3xi9opwio65df14rdgrtw40ivbk1o.gz -O SSD-Mobilenet-v1.tar.gz
 #Note: in some cases, downloading from box.com is blocked. In that case, use the below mirror link
-# RUN wget https://github.com/dusty-nv/jetson-inference/releases/download/model-mirror-190618/SSD-Mobilenet-v1.tar.gz -O SSD-Mobilenet-v1.tar.gz
-# RUN tar -xvzf SSD-Mobilenet-v1.tar.gz
-# RUN rm -rf SSD-Mobilenet-v1.tar.gz
+RUN wget https://github.com/dusty-nv/jetson-inference/releases/download/model-mirror-190618/SSD-Mobilenet-v1.tar.gz -O SSD-Mobilenet-v1.tar.gz
+RUN tar -xvzf SSD-Mobilenet-v1.tar.gz
+RUN rm -rf SSD-Mobilenet-v1.tar.gz
 #This results in a new directory as SSD-Mobilenet-v1 that contains ssd_mobilenet_v1_coco.uff and ssd_coco_labels.txt
 #upon the first inference use, TensorRT creates an engine that optimizes the inferences. This may take a while for the first run. To avoid this delay, we copy here a prebuilt engine for this model.
 
 #Copy the engine prebuilt model to avoid first run delay. If you have not the engine file, run test_gpu_detection.py on the host to create one.
 #[GPU]
-# COPY ./networks/SSD-Mobilenet-v1/ssd_mobilenet_v1_coco.uff.1.1.8201.GPU.FP16.engine ./SSD-Mobilenet-v1/
+COPY ./networks/SSD-Mobilenet-v1/ssd_mobilenet_v1_coco.uff.1.1.8201.GPU.FP16.engine ./SSD-Mobilenet-v1/
 
 #spare model for GPU
 #Model 2: SSD-Mobilenet-v2

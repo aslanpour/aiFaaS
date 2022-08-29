@@ -74,8 +74,11 @@ pkg_tflite_tuntime = importlib.util.find_spec('tflite_runtime')
 pkg_tensorflow = importlib.util.find_spec('tensorflow')
 pkg_pycoral = importlib.util.find_spec('pycoral')
 is_tpu_available = 'yes' if is_tpu_available=='yes' and (pkg_tflite_tuntime or pkg_tensorflow) and pkg_pycoral else 'no'
-if not is_tpu_available:
-    print('TPU not found (hardware search: lsusb=Google Inc. or Global Unichip Corp. and software search: tflite/tensorflow and pycoral\nMake sure USB and privileged permissions are given to container.)', flush=True)
+if is_tpu_available == 'no':
+    print("TPU not found (hardware search: lsusb=Google Inc. or Global Unichip Corp. and software search: tflite/tensorflow and pycoral"
+    + "\nIf this is not an expected behavior,"
+    + "\nMake sure USB and privileged permissions are given to container."
+    + "\nMake sure USB devices are enabled by echo '2-1' |sudo tee /sys/bus/usb/drivers/usb/bind)", flush=True)
 MODEL_SUPPORTED_RESOURCES_TPU = config['Model']['supported_resources_tpu'] = os.getenv("MODEL_SUPPORTED_RESOURCES_TPU", is_tpu_available)
 print('MODEL_SUPPORTED_RESOURCES_TPU=' + MODEL_SUPPORTED_RESOURCES_TPU, flush=True)
 
