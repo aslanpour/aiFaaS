@@ -1,15 +1,49 @@
 import requests
-supported_resources_gpu
-res = requests.post('http://localhost:5000/config/write', json={"config":{"Model": {"supported_resources_gpu": "gpu"}}})
-res = requests.post('http://localhost:5000/config/write', json={"config":{"Model": {"run_on": "gpu"}}})
-res = requests.post('http://localhost:5000/config/write', json={"config":{"Model": {"inference_repeat": "10"}}})
 
-res = requests.post('http://localhost:5000/config/read', json={})
+# res = requests.post('http://localhost:5000/config/write', json={"config":{"Model": {"supported_resources_gpu": "gpu"}}})
+# res = requests.post('http://localhost:5000/config/write', json={"config":{"Model": {"run_on": "gpu"}}})
+# res = requests.post('http://localhost:5000/config/write', json={"config":{"Model": {"inference_repeat": "10"}}})
 
+# res = requests.get('http://localhost:5000/config/read', json={})
+res = requests.get('http://10.0.0.90:31112/function/w5-ssd/config/read')
+config = res.json()
 if res.ok:
-    print(res.json())
+    print(config)
+config={'Default': {'full_path': '/home/app/config.ini'}, 
+        'Model': {'cpu_file': 'model.cpu.tflite', 
+        'dir': '/home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/', 
+        'dir_gpu': '/home/app/networks/SSD-Mobilenet-v1/', 
+        'gpu_builtin_network': 'ssd-mobilenet-v1', 
+        'gpu_file': 'ssd_mobilenet_v1_coco.uff', 
+        'image_dir': '/home/app/images/', 
+        'image_get': 'single', 
+        'image_sample1': '/home/app/images/image1.jpg', 
+        'image_sample2': '/home/app/images/image2.jpg', 
+        'inference_repeat': '1', 
+        'label_file': 'labelmap.txt', 
+        'label_file_gpu': 'ssd_coco_labels.txt', 
+        'min_confidence_threshold': '0.5', 
+        'pre_load': 'yes', 
+        'run_on': 'cpu', 
+        'supported_resources_cpu': 'yes', 
+        'supported_resources_gpu': 'no', 
+        'supported_resources_tpu': 'yes', 
+        'tpu_file': 'model.edgetpu.tflite'}, 
+        'X-KUBERNETES_DEPLOYMENT_NAME': None, 
+        'X-KUBERNETES_SERVICE_IP': '10.43.0.1', 
+        'X-KUBERNETES_SERVICE_PORT': '443', 
+        'X-NODE-NAME': 'w5', 'X-POD-HOST-IP': '10.0.0.95', 
+        'X-POD-IP': '10.42.9.216', 
+        'X-POD-IPS': '10.42.9.216', 
+        'X-POD-NAME': 'w5-ssd-97b9f5b6b-9kmvk', 
+        'X-POD-NAMESPACE': 'openfaas-fn', 
+        'X-POD-UID': 'f1300de6-71b0-4769-92a6-28966205f97c', 
+        'X-Worker-Ip': '10.42.9.216', 
+        'X-Worker-Name': 'w5-ssd-97b9f5b6b-9kmvk'}
 
-'''
+if 'supported_resources_gpu' in config['Model']:
+  print('yes')
+a='''
 #read
 curl -X GET -i  http://localhost:5000/config/read
 
@@ -92,7 +126,7 @@ k patch deployment ssd-tpu --type merge --patch-file patch-file.yaml
 
 
 
-'''scheduler a pod
+a='''scheduler a pod
 #first terminal
 kubectl proxy --port=8080 &
 
@@ -115,3 +149,5 @@ spec:
 PODNAME=$(kubectl --server $SERVER get pods -o json | jq '.items[] | select(.spec.nodeName == "silly") | .metadata.name')
 
  curl --header "Content-Type:application/json" --request POST --data '{"apiVersion":"v1", "kind": "Binding", "metadata": {"name": "'$PODNAME'"}, "target": {"apiVersion": "v1", "kind": "Node", "name": "'$NODENAME'"}}' http://$SERVER/api/v1/namespaces/default/pods/$PODNAME/binding/
+
+ '''

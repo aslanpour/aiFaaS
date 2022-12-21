@@ -1,6 +1,10 @@
 # python3 detection.py --modeldir=Sample_TFLite_model --graph=detect.tflite --labels=labelmap.txt --threshold=0.0 --image=test1.jpg --edgetpu --count=10
+#response = requests.post('http://10.0.0.95:5000/', headers={'Use-Local-Image': 'image1.jpg'})
 #curl -X POST -i -F image_file=@./test.jpg  http://localhost:5000/
 #curl -X POST -H "Image-URL:http://10.0.0.95:5005/" http://localhost:5000/
+#curl -X GET -i -H "Use-Local-Image: image1.jpg"  http://localhost:5000/
+#curl -X GET -i -H "Image-URL: http://localhostmachine:5500/pioss/api/read/w3-ssd/pic_41.jpg"  http://10.0.0.90:31112/function/w5-ssd/
+#curl -X GET -i -H "Image-URL: http://10.0.0.96:9000/mybucket/pic_41.jpg" -H "Internal-as:aaa" http://10.0.0.95:5001/
 
 # Ref: from git clone https://github.com/EdjeElectronics/TensorFlow-Lite-Object-Detection-on-Android-and-Raspberry-Pi.git
 # Files: from git clone https://github.com/EdjeElectronics/TensorFlow-Lite-Object-Detection-on-Android-and-Raspberry-Pi.git
@@ -32,8 +36,12 @@ import threading
 import multiprocessing
 
 import names
-lock = threading.Lock()
 
+from minio import Minio
+from minio.commonconfig import Tags
+
+lock = threading.Lock()
+# lock = request.environ['HTTP_FLASK_LOCK']
 
 #initiate the config (Note: environment variables overwrite the default values if set)
 
@@ -42,6 +50,9 @@ config = configparser.ConfigParser()
 config.add_section('Default')
 #CONFIG_FULL_PATH is meant to remain unchanged always since others read/write on this path.
 CONFIG_FULL_PATH = config['Default']['full_path'] = os.getenv("CONFIG_FULL_PATH", "/home/app/config.ini")
+#multithreading
+WAITRESS_THREADS = config['Default']['waitress_threads'] = os.getenv("WAITRESS_THREADS", "4")
+WAITRESS_THREADS = int(WAITRESS_THREADS)
 config.add_section('Model')
 MODEL_PRE_LOAD = config['Model']['pre_load'] = os.getenv("MODEL_PRE_LOAD", 'cpu-only') #'no', 'cpu-only' or 'yes'
 
@@ -74,12 +85,18 @@ pkg_tflite_tuntime = importlib.util.find_spec('tflite_runtime')
 pkg_tensorflow = importlib.util.find_spec('tensorflow')
 pkg_pycoral = importlib.util.find_spec('pycoral')
 is_tpu_available = 'yes' if is_tpu_available=='yes' and (pkg_tflite_tuntime or pkg_tensorflow) and pkg_pycoral else 'no'
+if is_tpu_available == 'yes':
+    import pycoral.utils.edgetpu 
+    print("edgetpu run-time version is " + str(pycoral.utils.edgetpu.get_runtime_version()))
 if is_tpu_available == 'no':
     print("TPU not found (hardware search: lsusb=Google Inc. or Global Unichip Corp. and software search: tflite/tensorflow and pycoral"
     + "\nIf this is not an expected behavior,"
     + "\nMake sure USB and privileged permissions are given to container."
     + "\nMake sure USB devices are enabled by echo '2-1' |sudo tee /sys/bus/usb/drivers/usb/bind)", flush=True)
 MODEL_SUPPORTED_RESOURCES_TPU = config['Model']['supported_resources_tpu'] = os.getenv("MODEL_SUPPORTED_RESOURCES_TPU", is_tpu_available)
+if os.getenv("MODEL_SUPPORTED_RESOURCES_TPU"):
+    if os.getenv("MODEL_SUPPORTED_RESOURCES_TPU") == 'yes' and is_tpu_available == 'no':
+        print('MODEL_SUPPORTED_RESOURCES_TPU is set to no because TPU is not detected.', flush=True)
 print('MODEL_SUPPORTED_RESOURCES_TPU=' + MODEL_SUPPORTED_RESOURCES_TPU, flush=True)
 
 #[GPU]
@@ -98,19 +115,21 @@ else:
 
 # gpu_devices = subprocess.check_output('cat /proc/device-tree/model', shell=True, stderr=subprocess.STDOUT, timeout=30).decode("utf-8")
 is_gpu_available = 'yes' if 'NVIDIA Jetson Nano' in gpu_devices or 'Jetson-AGX' in gpu_devices or 'quill' in gpu_devices else 'no'
-if not is_gpu_available: print('GPU hardware is detected. Lets search for its software...', flush=True)
+if is_gpu_available == 'yes': print('GPU hardware is detected. Lets search for its software...', flush=True)
 if gpu_devices != "Failed Command" and is_gpu_available != 'yes': print('GPU hardware search by /proc/device-tree/model did not fail, but it did not find the device as a GPU supported one, including NVIDIA Jetson Nano, Jetson-AGX, or quill', flush=True)
 
 #software: if jetson package is installed
 pkg_jetson = importlib.util.find_spec('jetson')
-if is_gpu_available and not pkg_jetson:
-    print('GPU software jetson not found. If this is not an expected behavior, check the base image if it is like dustynv/jetson-inference:r32.7.1')
+if is_gpu_available == 'yes' and not pkg_jetson:
+    print('GPU software jetson not found. If this is not an expected behavior, check the base image if it is like dustynv/jetson-inference:r32.7.1', flush=True)
 is_gpu_available = 'yes' if is_gpu_available=='yes' and pkg_jetson else 'no'
-if not is_gpu_available:
+if is_gpu_available == 'no':
     print('GPU not found (hardware search: cat /proc/device-tree/model and software search: import jetson)', flush=True)
 MODEL_SUPPORTED_RESOURCES_GPU = config['Model']['supported_resources_gpu'] = os.getenv("MODEL_SUPPORTED_RESOURCES_GPU", is_gpu_available)
+if os.getenv("MODEL_SUPPORTED_RESOURCES_GPU"):
+    if os.getenv("MODEL_SUPPORTED_RESOURCES_GPU") == 'yes' and is_gpu_available == 'no':
+        print('MODEL_SUPPORTED_RESOURCES_GPU is set to no because GPU is not detected.', flush=True)
 print('MODEL_SUPPORTED_RESOURCES_GPU=' + MODEL_SUPPORTED_RESOURCES_GPU, flush=True)
-
 
 MODEL_DIR = config['Model']['dir'] = os.getenv("MODEL_DIR", '/home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/')
 MODEL_CPU_FILE = config['Model']['cpu_file'] = os.getenv("MODEL_CPU_FILE", "model.cpu.tflite")
@@ -122,7 +141,15 @@ MODEL_IMAGE_SAMPLE1 = config['Model']['image_sample1'] = os.getenv("MODEL_IMAGE_
 MODEL_IMAGE_SAMPLE2 = config['Model']['image_sample2'] = os.getenv("MODEL_IMAGE_SAMPLE2", "/home/app/images/image2.jpg")
 MODEL_MIN_CONFIDENCE_THRESHOLD = config['Model']['min_confidence_threshold'] = os.getenv("MODEL_MIN_CONFIDENCE_THRESHOLD", '0.5')
 MODEL_INFERENCE_REPEAT = config['Model']['inference_repeat'] = os.getenv("MODEL_INFERENCE_REPEAT", '1')
+#number of thread workers the tensorflow will spawn to do the object detection per task. Default is 1.
+MODEL_CPU_TPU_INTERPRETER_THREADS = config['Model']['interpreter_cpu_tpu_threads'] = os.getenv("MODEL_CPU_TPU_INTERPRETER_THREADS", '1')
+MODEL_CPU_TPU_INTERPRETER_THREADS = int(MODEL_CPU_TPU_INTERPRETER_THREADS)
+
 MODEL_RUN_ON = config['Model']['run_on'] = os.getenv("MODEL_RUN_ON", 'cpu') #cpu, tpu or gpu
+
+#CPU
+MODEL_CPU_WORKERS = config['Model']['cpu_workers'] = os.getenv("MODEL_CPU_WORKERS", "1")
+MODEL_CPU_WORKERS = int(MODEL_CPU_WORKERS)
 
 #GPU
 MODEL_DIR_GPU = config['Model']['dir_gpu'] = os.getenv("MODEL_DIR_GPU", '/home/app/networks/SSD-Mobilenet-v1/')
@@ -130,6 +157,18 @@ MODEL_GPU_FILE = config['Model']['gpu_file'] = os.getenv("MODEL_GPU_FILE", "ssd_
 MODEL_LABEL_FILE_GPU = config['Model']['label_file_gpu'] = os.getenv("MODEL_LABEL_FILE_GPU", "ssd_coco_labels.txt")
 MODEL_GPU_BUILTIN_NETWORK = config['Model']['gpu_builtin_network'] = os.getenv("MODEL_GPU_BUILTIN_NETWORK", "ssd-mobilenet-v1")
 
+#check misconfiguration of threads and models
+if MODEL_RUN_ON == 'cpu':
+    if MODEL_CPU_WORKERS != WAITRESS_THREADS:
+        print('Misconfiguration: MODEL_RUN_ON=' + str(MODEL_RUN_ON) + ', but MODEL_CPU_WORKERS (' + str(MODEL_CPU_WORKERS) 
+                    + ') != WAITRESS_THREADS (' + str(WAITRESS_THREADS) + ') while they better be equal and X times cpu cores.', flush=True)
+elif MODEL_RUN_ON == 'tpu':
+    if WAITRESS_THREADS > 1:
+        print('Misconfiguration: MODEL_RUN_ON=' + str(MODEL_RUN_ON) + ', but WAITRESS_THREADS (' + str(WAITRESS_THREADS) + ') !=1', flush=True)
+elif MODEL_RUN_ON == 'gpu':
+    if WAITRESS_THREADS == 1:
+        print('Misconfiguration: MODEL_RUN_ON=' + str(MODEL_RUN_ON) + ', but WAITRESS_THREADS (' + str(WAITRESS_THREADS) 
+                + ') ==1 while it can be X times CPU cores.', flush=True)
 
 #persist the config
 with open(CONFIG_FULL_PATH, 'w') as configfile:
@@ -139,13 +178,43 @@ with open(CONFIG_FULL_PATH, 'w') as configfile:
 #overwrite config by arguments
 #...
 
+#minio
+minio_client = None
+if os.getenv('MINIO_ENABLED'):
+    #MINIO_ENABLED=endpoint=10.0.0.96:9000,access_key=minioadmin,secret_key=minioadmin,secure=False
+    try:
+        minio_server_info = str(os.getenv('MINIO_ENABLED'))
+        minio_endpoint = minio_server_info.split(',')[0].split('=')[1]
+        minio_access_key = minio_server_info.split(',')[1].split('=')[1]
+        minio_secret_key = minio_server_info.split(',')[2].split('=')[1]
+        minio_secure = minio_server_info.split(',')[3].split('=')[1]
+        if minio_secure.lower() == 'false' or minio_secure.lower() == 'no' or minio_secure.lower() == '0':
+            minio_secure = False
+        elif minio_secure.lower() == 'true' or minio_secure.lower() == 'yes' or minio_secure.lower() == '1':
+            minio_secure = True
+        else:
+            pass
+        minio_client = Minio(endpoint = minio_endpoint, access_key = minio_access_key, secret_key = minio_secret_key, secure = minio_secure)
+    except Exception as e:
+        print('minio_server_info=' + minio_server_info)
+        print(str(e))
+
+#session
+internal_session = requests.session()
+internal_session.mount(
+    'http://',
+    requests.adapters.HTTPAdapter(pool_maxsize= 10,
+                                    max_retries=3,
+                                    pool_block=True))
+
 #update config: in case config.ini is updated, apply the changes in the assocciated variables.
 def get_latest_config(lock):
-    global CONFIG_FULL_PATH, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU
+    global CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU, MODEL_CPU_WORKERS
     with lock:
         config = configparser.ConfigParser()
         config.read(CONFIG_FULL_PATH)
         CONFIG_FULL_PATH = config['Default']['full_path'] 
+        WAITRESS_THREADS = int(config['Default']['waitress_threads'])
         MODEL_PRE_LOAD = config['Model']['pre_load']
 
         MODEL_SUPPORTED_RESOURCES_CPU = config['Model']['supported_resources_cpu'] 
@@ -166,11 +235,27 @@ def get_latest_config(lock):
         MODEL_IMAGE_SAMPLE2 = config['Model']['image_sample2'] 
         MODEL_MIN_CONFIDENCE_THRESHOLD = config['Model']['min_confidence_threshold'] 
         MODEL_INFERENCE_REPEAT = config['Model']['inference_repeat'] 
+        MODEL_CPU_TPU_INTERPRETER_THREADS = config['Model']['interpreter_cpu_tpu_threads']
+        MODEL_CPU_TPU_INTERPRETER_THREADS = int(MODEL_CPU_TPU_INTERPRETER_THREADS)
+
         MODEL_RUN_ON = config['Model']['run_on'] 
+        MODEL_CPU_WORKERS = int(config['Model']['cpu_workers'])
 
+        #check misconfiguration of threads and models
+        if MODEL_RUN_ON == 'cpu':
+            if MODEL_CPU_WORKERS != WAITRESS_THREADS:
+                print('Misconfiguration: MODEL_RUN_ON=' + str(MODEL_RUN_ON) + ', but MODEL_CPU_WORKERS (' + str(MODEL_CPU_WORKERS) 
+                            + ') != WAITRESS_THREADS (' + str(WAITRESS_THREADS) + ') while they better be equal and X times cpu cores.', flush=True)
+        elif MODEL_RUN_ON == 'tpu':
+            if WAITRESS_THREADS > 1:
+                print('Misconfiguration: MODEL_RUN_ON=' + str(MODEL_RUN_ON) + ', but WAITRESS_THREADS (' + str(WAITRESS_THREADS) + ') !=1', flush=True)
+        elif MODEL_RUN_ON == 'gpu':
+            if WAITRESS_THREADS == 1:
+                print('Misconfiguration: MODEL_RUN_ON=' + str(MODEL_RUN_ON) + ', but WAITRESS_THREADS (' + str(WAITRESS_THREADS) 
+                        + ') ==1 while it can be X times CPU cores.', flush=True)
+        
 
-    return CONFIG_FULL_PATH, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU
-
+    return CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT,MODEL_CPU_TPU_INTERPRETER_THREADS, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU, MODEL_CPU_WORKERS
 
 
 
@@ -178,50 +263,79 @@ def get_latest_config(lock):
 CURRENT_MODEL_RUN_ON = MODEL_RUN_ON
 
 #inference workers
-interpreter_cpu, interpreter_tpu, interpreter_gpu = None, None, None
-error_tmp = ""
+#NOTE: cpu interpreter is an array because "flask uses multiple threads. Tensorflow models loaded in one thread, must be used in that same thread." Ref: https://stackoverflow.com/questions/49400440/using-keras-model-in-flask-app-with-threading
+interpreter_cpu, interpreter_tpu, interpreter_gpu = [None]*MODEL_CPU_WORKERS, None, None
+floating_model_cpu, input_mean_cpu, input_std_cpu, input_details_cpu, output_details_cpu, boxes_idx_cpu, classes_idx_cpu,scores_idx_cpu, labels_cpu, error_tmp = [None]*MODEL_CPU_WORKERS,[None]*MODEL_CPU_WORKERS,[None]*MODEL_CPU_WORKERS,[None]*MODEL_CPU_WORKERS,[None]*MODEL_CPU_WORKERS,[None]*MODEL_CPU_WORKERS,[None]*MODEL_CPU_WORKERS,[None]*MODEL_CPU_WORKERS,[None]*MODEL_CPU_WORKERS,[None]*MODEL_CPU_WORKERS
 
 #should it pre load models for supported resources?
 if MODEL_PRE_LOAD == 'yes':
+    print('Preload models...')
     #bring all models up if the resource is supported
     #cpu
     if MODEL_SUPPORTED_RESOURCES_CPU == 'yes':
+        print('Load cpu model ' + str(MODEL_CPU_WORKERS) + ' times', flush=True)
         MODEL_RUN_ON = 'cpu'
-        interpreter_cpu, floating_model_cpu, input_mean_cpu, input_std_cpu, input_details_cpu, output_details_cpu, boxes_idx_cpu, classes_idx_cpu,scores_idx_cpu, labels_cpu, error_tmp = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT)
-    
+        for i in range(MODEL_CPU_WORKERS):
+            
+            interpreter_cpu[i], floating_model_cpu[i], input_mean_cpu[i], input_std_cpu[i], input_details_cpu[i], output_details_cpu[i], boxes_idx_cpu[i], classes_idx_cpu[i],scores_idx_cpu[i], labels_cpu[i], error_tmp[i] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
+
+            if error_tmp[i]:
+                print('loading a model failed:\n' + str(error_tmp[i]), flush=True)
+                print(str(len(error_tmp)))
     #tpu
     if MODEL_SUPPORTED_RESOURCES_TPU == 'yes':
+        print('Load tpu model... ', flush=True)
         MODEL_RUN_ON = 'tpu'
-        interpreter_tpu, floating_model_tpu, input_mean_tpu, input_std_tpu, input_details_tpu, output_details_tpu, boxes_idx_tpu, classes_idx_tpu,scores_idx_tpu, labels_tpu, error_tmp = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT)
+        interpreter_tpu, floating_model_tpu, input_mean_tpu, input_std_tpu, input_details_tpu, output_details_tpu, boxes_idx_tpu, classes_idx_tpu,scores_idx_tpu, labels_tpu, error_tmp[0] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
+        if error_tmp[0]:
+            print('loading a model failed:\n' + str(error_tmp[0]), flush=True)
     #gpu
     if MODEL_SUPPORTED_RESOURCES_GPU == 'yes':
+        print('Load gpu model... ', flush=True)
         MODEL_RUN_ON = 'gpu'
-        interpreter_gpu, labels_gpu, error_tmp = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT)
-    
+        interpreter_gpu, labels_gpu, error_tmp[0] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
+        if error_tmp[0]:
+            print('loading a model failed:\n' + str(error_tmp[0]), flush=True)
+
     #fix MODEL_RUN_ON
     MODEL_RUN_ON = CURRENT_MODEL_RUN_ON
 
-    print('All requested models are loaded', flush=True)
-    print(error_tmp)
+    print('All requested models are preloaded', flush=True)
+
 
 elif MODEL_PRE_LOAD == 'cpu-only':
     #cpu
     if MODEL_SUPPORTED_RESOURCES_CPU == 'yes':
         MODEL_RUN_ON = 'cpu'
-        interpreter_cpu, floating_model_cpu, input_mean_cpu, input_std_cpu, input_details_cpu, output_details_cpu, boxes_idx_cpu, classes_idx_cpu,scores_idx_cpu, labels_cpu, error_tmp = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT)
-    print(error_tmp)
+
+        for i in range(MODEL_CPU_WORKERS):
+            print('Load cpu model ' + str(MODEL_CPU_WORKERS) + ' times', flush=True)
+        
+            interpreter_cpu_tmp, floating_model_cpu[i], input_mean_cpu[i], input_std_cpu[i], input_details_cpu[i], output_details_cpu[i], boxes_idx_cpu[i], classes_idx_cpu[i],scores_idx_cpu[i], labels_cpu[i], error_tmp[i] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
+            interpreter_cpu[i] = interpreter_cpu_tmp
+            # import copy
+            # interpreter_cpu[i] = copy.deepcopy(interpreter_cpu_tmp)
+            print('loading a model failed:\n' + str(error_tmp[0]), flush=True)
+            
 elif MODEL_PRE_LOAD == 'no':
     print('No model is loaded', flush=True)
 else:
     print('ERROR: MODEL_PRE_LOAD=' + MODEL_PRE_LOAD + ', but must be yes, no, or cpu-only.')
 
+
+
+#restrict access to the main function by MODEL_CPU_WORKERS
+semaphore = threading.Semaphore(MODEL_CPU_WORKERS)
+
 #handle
-def handle(request):
+def handle(request, counter):
     """handle a request to the function
     Args:
         request (object): Flask request object
     """
-    global CONFIG_FULL_PATH, MODEL_DIR, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_LABEL_FILE, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_RUN_ON
+    print('counter= ' + str(counter))
+
+    global CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_LABEL_FILE, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_RUN_ON, MODEL_CPU_WORKERS, MODEL_CPU_TPU_INTERPRETER_THREADS
     global CURRENT_MODEL_RUN_ON
 
     global lock
@@ -229,7 +343,13 @@ def handle(request):
     global interpreter_cpu, floating_model_cpu, input_mean_cpu, input_std_cpu, input_details_cpu, output_details_cpu, boxes_idx_cpu, classes_idx_cpu,scores_idx_cpu, labels_cpu
     global interpreter_tpu, floating_model_tpu, input_mean_tpu, input_std_tpu, input_details_tpu, output_details_tpu, boxes_idx_tpu, classes_idx_tpu,scores_idx_tpu, labels_tpu
     global interpreter_gpu, labels_gpu
+
+
+    global semaphore
+    # semaphore.acquire()
     
+    worker_index = counter % MODEL_CPU_WORKERS
+
     error = ""
 
     start_main = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
@@ -237,12 +357,16 @@ def handle(request):
     #Get latest config
     start = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
     try:
-        CONFIG_FULL_PATH, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU = get_latest_config(lock)
+        CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU,MODEL_CPU_WORKERS = get_latest_config(lock)
     except Exception as e:
         error = 'Get latest config: ' + str(e)
+        return None, None, error
 
     elapsed_config = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp() - start
 
+    #lock for cpu workers max
+    if MODEL_RUN_ON == 'cpu':
+        semaphore.acquire()
 
     #Get image
     start = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
@@ -256,6 +380,13 @@ def handle(request):
     # Check if image URL specified in request header
     elif request.headers.get('Image-URL'):
         url = str(request.headers.get('Image-URL'))
+        #replcae localhostmachine with function host IP. Applies to when object storage is local to function place.
+        if 'localhostmachine' in url:
+            if os.getenv('POD_HOST_IP'):
+                url = url.replace('localhostmachine', str(os.getenv('POD_HOST_IP')), 1)
+            else:
+                error += 'localhostmachine in Image-URL=' + url + ', but function failed to obtain POD_HOST_IP env.\n' 
+                url = None
 
     # Check if image URL specified in request body as raw text
     else:
@@ -265,34 +396,71 @@ def handle(request):
                 url = body_url
         except:
             pass
+
     #fetch image
     if url is not None:
         try:
+            #headers
+            #like headers["Connection"] = "keep-alive" and/or headers["Keep-Alive"] = "timeout=5, max=100"
+            internal_request_header = {}
+            session_is_requested = False
+            for k,v in dict(request.headers).items():
+                if 'Internal-' in k:
+                    internal_request_header[k.replace('Internal-', '')] = v
+                if 'Internal-Session' in k:
+                    session_is_requested = True
             #url_req = urllib.request.urlopen(url)
             #image_array = np.asarray(bytearray(url_req.read()), dtype=np.uint8)
             #image = cv2.imdecode(image_array, -1)
-            raw_image = Image.open(requests.get(url, stream=True).raw)
+            #session.get
+            if session_is_requested:
+                with internal_session as session:
+                    raw_image = Image.open(session.get(url, headers= internal_request_header, stream=True).raw)
+            #requests.get
+            else:
+                raw_image = Image.open(requests.get(url, headers= internal_request_header, stream=True).raw)
             #Ref: https://stackoverflow.com/questions/7391945/how-do-i-read-image-data-from-a-url-in-python
             #Or
-        except:
-            error += '\nFetch file: Fetching file failed, URL: ' + str(url)
-            print("Fetch file failed, URL: " + str(url))
+        except Exception as e:
+            error += '\nFetch file: Fetching file failed, URL: ' + str(url) + '\n' + str(e)
+            print("Fetch file failed, URL: " + str(url) + '\n' + str(e), flush=True)
     else:
     #read image
         try:
-            file = request.files['image_file']
-            #image = cv2.imdecode(np.fromstring(file.read(), np.uint8), cv2.IMREAD_UNCHANGED)
-            raw_image = Image.open(file)
-            #req = urllib.request.Request(image_url)
-            #response = urllib.request.urlopen(req)
-            #image_data = response.read()
-        except:
-            error += '\nRead image: Reading file from image_file failed'
-            print("Read image: Reading file from image_file failed")
+            #use local images
+            if request.headers.get('Use-Local-Image'):
+                print('using sample image= ' + str(request.headers.get('Use-Local-Image')), flush=True)
+
+                #by given image name, using '.' delimeter
+                if len(request.headers.get('Use-Local-Image').split('.')) > 1:
+                    raw_image = Image.open(MODEL_IMAGE_DIR + request.headers.get('Use-Local-Image'))
+
+                #by random within a range according to value range and counter
+                elif len(request.headers.get('Use-Local-Image').split('-')) > 1:
+                    #get range
+                    pics_num = int(request.headers.get('Use-Local-Image').split('-')[1]) - int(request.headers.get('Use-Local-Image').split('-')[0])
+                    #calculate file_name
+                    file_name = 'pic_' + str(counter % pics_num if counter % pics_num != 0  else 1) + '.jpg'
+                    print('file_name= ' + file_name, flush=True)
+
+                    raw_image = Image.open(MODEL_IMAGE_DIR + file_name)    
+
+            #attached
+            else:
+                print('read image from request', flush=True)
+                file = request.files['image_file']
+                #image = cv2.imdecode(np.fromstring(file.read(), np.uint8), cv2.IMREAD_UNCHANGED)
+                raw_image = Image.open(file)
+                #req = urllib.request.Request(image_url)
+                #response = urllib.request.urlopen(req)
+                #image_data = response.read()
+        except Exception as e:
+            error += '\nRead image: Reading file from image_file failed\n' + str(e)
+            print("Read image: Reading file from image_file failed\n" + str(e), flush=True)
 
 
     end = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
-    elapsed_image = end - start
+    elapsed_fetch_image = end - start
 
     if raw_image is None:
         error += "\nImage must be specified either as file, or URL. For file, it needs to be attached in a multipart/form-data request via the 'image_file' key. For URL, it must be provided via query parameter 'image_url', via request header 'Image-URL', or via raw plaintext in the request body."
@@ -309,18 +477,22 @@ def handle(request):
         #if the requested model is cpu
         if MODEL_RUN_ON == 'cpu':
             #if it is not already loaded
-            if interpreter_cpu == None:
+            # if interpreter_cpu == None:
+            if interpreter_cpu == [None]*MODEL_CPU_WORKERS:
                 #if the resource is supported
                 if MODEL_SUPPORTED_RESOURCES_CPU == 'yes':
                     #load it and set its interpreter
-                    
-                    interpreter_cpu, floating_model_cpu, input_mean_cpu, input_std_cpu, input_details_cpu, output_details_cpu, boxes_idx_cpu, classes_idx_cpu,scores_idx_cpu, labels_cpu, error = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT)   
-                    
-                    if len(error)==0:
-                        print('MODEL_RUN_ON = ' + MODEL_RUN_ON + ', so a model is loaded and its interpreter is set to be used from now on', flush=True)    
-                    else:
-                        error += '\nHandler failed to load a model'
-                        return None, None, error
+                    for i in range(MODEL_CPU_WORKERS):
+                        print('Load cpu model ' + str(MODEL_CPU_WORKERS) + ' times', flush=True)
+                        interpreter_cpu_tmp, floating_model_cpu[i], input_mean_cpu[i], input_std_cpu[i], input_details_cpu[i], output_details_cpu[i], boxes_idx_cpu[i], classes_idx_cpu[i],scores_idx_cpu[i], labels_cpu[i], error[i] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)   
+                        interpreter_cpu[i] = interpreter_cpu_tmp
+                        # import copy
+                        # interpreter_cpu[i] = copy.deepcopy(interpreter_cpu_tmp)
+                        if len(error)==0:
+                            print('MODEL_RUN_ON = ' + MODEL_RUN_ON + ', so a model is loaded and its interpreter is set to be used from now on', flush=True)    
+                        else:
+                            error += '\nHandler failed to load a model'
+                            return None, None, error
                 else:
                     error += '\nMODEL_RUN_ON = ' + MODEL_RUN_ON + ', but MODEL_SUPPORTED_RESOURCES_CPU = ' + MODEL_SUPPORTED_RESOURCES_CPU
                     return None, None, error
@@ -335,7 +507,7 @@ def handle(request):
                 if MODEL_SUPPORTED_RESOURCES_TPU == 'yes':
                     #load it and set its interpreter
     
-                    interpreter_tpu, floating_model_tpu, input_mean_tpu, input_std_tpu, input_details_tpu, output_details_tpu, boxes_idx_tpu, classes_idx_tpu,scores_idx_tpu, labels_tpu, error = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT)
+                    interpreter_tpu, floating_model_tpu, input_mean_tpu, input_std_tpu, input_details_tpu, output_details_tpu, boxes_idx_tpu, classes_idx_tpu,scores_idx_tpu, labels_tpu, error = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
 
                     if len(error)==0:
                         print('MODEL_RUN_ON = ' + MODEL_RUN_ON + ', so a model is loaded and its interpreter is set to be used from now on', flush=True)    
@@ -356,7 +528,7 @@ def handle(request):
                 if MODEL_SUPPORTED_RESOURCES_GPU == 'yes':
                     #load it and set its interpreter
                     
-                    interpreter_gpu, labels_gpu, error = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT)
+                    interpreter_gpu, labels_gpu, error = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
                     
                     if len(error)==0:
                         print('MODEL_RUN_ON = ' + MODEL_RUN_ON + ', so a model is loaded and its interpreter is set to be used from now on', flush=True)    
@@ -384,12 +556,13 @@ def handle(request):
     #pick an already loaded interpreter
     print('mode run on ' + MODEL_RUN_ON)
     if MODEL_RUN_ON == 'cpu':
-        print('interpreter_cpu')
+        print('interpreter_cpu', flush=True)
+
         interpreter_worker = interpreter_cpu
     elif MODEL_RUN_ON == 'tpu':
         if MODEL_SUPPORTED_RESOURCES_TPU == 'yes':
             interpreter_worker = interpreter_tpu
-            print('interpreter_tpu')
+            print('interpreter_tpu', flush=True)
         else:
             error +=  '\nMODEL_RUN_ON == tpu and MODEL_SUPPORTED_RESOURCES_TPU != yes, so first enable MODEL_SUPPORTED_RESOURCES_TPU and load its model'
             return None, None, error
@@ -409,7 +582,7 @@ def handle(request):
 
     #[Image Preprocessing]
     start = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
-    
+
     #for GPU use
     if MODEL_RUN_ON == 'gpu':
         #jetson.inference loads images by jetson.utils.loadImage from the host in a given address and does not need any extra work, but if the image is from Pillow or Numpy, etc. objects, the image  needs converting. Hence, to avoid conversions, I just save the Pillow file locally, load it and delete it.
@@ -435,12 +608,18 @@ def handle(request):
     #for CPU or TPU
     else:
         # Model must be uint8 quantized
+        #cpu
+        if MODEL_RUN_ON == 'cpu':
+            if common.input_details(interpreter_worker[worker_index], 'dtype') != np.uint8:
+                raise ValueError('Only support uint8 input type.')
 
-        if common.input_details(interpreter_worker, 'dtype') != np.uint8:
-            raise ValueError('Only support uint8 input type.')
-        
-        size = common.input_size(interpreter_worker)
+            size = common.input_size(interpreter_worker[worker_index])
+        #tpu
+        else:
+            if common.input_details(interpreter_worker, 'dtype') != np.uint8:
+                raise ValueError('Only support uint8 input type.')
 
+            size = common.input_size(interpreter_worker)
 
         #The Image.ANTIALIAS in EdjeElectronics example gives a warning that  DeprecationWarning: ANTIALIAS is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.LANCZOS instead.
         #image = Image.open(args.image).convert('RGB').resize(size, Image.ANTIALIAS)
@@ -456,20 +635,35 @@ def handle(request):
         # does not need any preprocessing (but in practice, even if the results are
         # very close to 1 and 0, it is probably okay to skip preprocessing for better
         # efficiency; we use 1e-5 below instead of absolute zero).
-        params = common.input_details(interpreter_worker, 'quantization_parameters')
+        #cpu
+        if MODEL_RUN_ON == 'cpu':
+            params = common.input_details(interpreter_worker[worker_index], 'quantization_parameters')
+        #tpu
+        else:
+            params = common.input_details(interpreter_worker, 'quantization_parameters')
         scale = params['scales']
         zero_point = params['zero_points']
         mean = 128.0
         std = 128.0
         if abs(scale * std - 1) < 1e-5 and abs(mean - zero_point) < 1e-5:
             # Input data does not require preprocessing.
-            common.set_input(interpreter_worker, image)
+            #cpu
+            if MODEL_RUN_ON == 'cpu':
+                common.set_input(interpreter_worker[worker_index], image)
+            #tpu
+            else:
+                common.set_input(interpreter_worker, image)
             input_data = image
         else:
             # Input data requires preprocessing
             normalized_input = (np.asarray(image) - mean) / (std * scale) + zero_point
             np.clip(normalized_input, 0, 255, out=normalized_input)
-            common.set_input(interpreter_worker, normalized_input.astype(np.uint8))
+            #cpu
+            if MODEL_RUN_ON == 'cpu':
+                common.set_input(interpreter_worker[worker_index], normalized_input.astype(np.uint8))
+            #tpu
+            else:
+                common.set_input(interpreter_worker, normalized_input.astype(np.uint8))
             input_data = normalized_input
             
 
@@ -482,13 +676,15 @@ def handle(request):
         input_data = np.expand_dims(image_resized, axis=0)
         
         # Normalize pixel values if using a floating model (i.e. if model is non-quantized)
+        #cpu
         if MODEL_RUN_ON == 'cpu':
-            if floating_model_cpu:
-                input_data = (np.float32(input_data) - input_mean_cpu) / input_std_cpu
+            if floating_model_cpu[worker_index]:
+                input_data = (np.float32(input_data) - input_mean_cpu[worker_index]) / input_std_cpu[worker_index]
+        #tpu
         else:
             if floating_model_tpu:
                 input_data = (np.float32(input_data) - input_mean_tpu) / input_std_tpu
-        
+  
     #end image preprocessing
     elapsed_image_preprocessing = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp() - start
 
@@ -506,6 +702,8 @@ def handle(request):
         start_rep = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
 
         # Perform the actual detection by running the model with the image as input
+        # with lock:
+
         if MODEL_RUN_ON == 'gpu':
             #gpu
             #Detect
@@ -513,11 +711,11 @@ def handle(request):
             who_executed = 'gpu'
 
         else: #cpu or tpu
-            if MODEL_RUN_ON == 'cpu': interpreter_worker.set_tensor(input_details_cpu[0]['index'] ,input_data)
+            if MODEL_RUN_ON == 'cpu': interpreter_worker[worker_index].set_tensor(input_details_cpu[worker_index][0]['index'] ,input_data)
             if MODEL_RUN_ON == 'tpu': interpreter_worker.set_tensor(input_details_tpu[0]['index'] ,input_data)
             #invoke
             if MODEL_RUN_ON == 'cpu': 
-                interpreter_worker.invoke()
+                interpreter_worker[worker_index].invoke()
                 who_executed = 'cpu'
             if MODEL_RUN_ON == 'tpu': 
                 interpreter_worker.invoke()
@@ -550,10 +748,10 @@ def handle(request):
             #    print(object)
         #cpu
         elif MODEL_RUN_ON == 'cpu':
-            boxes = interpreter_worker.get_tensor(output_details_cpu[boxes_idx_cpu]['index'])
+            boxes = interpreter_worker[worker_index].get_tensor(output_details_cpu[worker_index][boxes_idx_cpu[worker_index]]['index'])
             # Bounding box coordinates of detected objects
-            classes = interpreter_worker.get_tensor(output_details_cpu[classes_idx_cpu]['index'])[0] # Class index of detected objects
-            scores = interpreter_worker.get_tensor(output_details_cpu[scores_idx_cpu]['index'])[0] # Confidence of detected objects
+            classes = interpreter_worker[worker_index].get_tensor(output_details_cpu[worker_index][classes_idx_cpu[worker_index]]['index'])[0] # Class index of detected objects
+            scores = interpreter_worker[worker_index].get_tensor(output_details_cpu[worker_index][scores_idx_cpu[worker_index]]['index'])[0] # Confidence of detected objects
         #tpu
         elif MODEL_RUN_ON == 'tpu':
             boxes = interpreter_worker.get_tensor(output_details_tpu[boxes_idx_tpu]['index'])
@@ -581,7 +779,7 @@ def handle(request):
 
                     # Draw label
                     if MODEL_RUN_ON == 'cpu':
-                        object_name = labels_cpu[int(classes[i])] # Look up object name from "labels" array using class index
+                        object_name = labels_cpu[worker_index][int(classes[i])] # Look up object name from "labels" array using class index
                     else:
                         object_name = labels_tpu[int(classes[i])] # Look up object name from "labels" array using class index
                     #label = '%s: %d%%' % (object_name, int(scores[i ] *100)) # Example: 'person: 72%'
@@ -589,12 +787,12 @@ def handle(request):
                     
                     detected_objects.append({"object": object_name, "confidence": int(scores[i] *100)})
                     print({"object": object_name, "confidence": int(scores[i] *100)})
-                    
+
     #end inference loop
     inference_dur_second_to_last_avg = inference_dur_second_to_last/(int(MODEL_INFERENCE_REPEAT)-1) if int(MODEL_INFERENCE_REPEAT)>1 else inference_dur_first
     #inference total duration
     elapsed_inference = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp() - start
-
+    # print('%.1fms total inference' % (elapsed_inference * 1000), file=sys.stdout)
     elapsed_total = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp() - start_main
 
     #get kubernetes service ip and port
@@ -606,13 +804,13 @@ def handle(request):
     #HTTP headers are case insensitive
     # OpenFaaS already creates a X-Duration-Seconds header which means the round trip
     headers = {
+        "X-Counter": str(counter),
         "Sensor-ID": str(request.headers.get('Sensor-ID')),
-        "Exec-Time": str(elapsed_total),
+        "X-Elapsed-Time": str(elapsed_total),
         "Start-Time": str(start_main),
         "X-Start-Time": str(start_main),
-        "X-Elapsed-Time": str(elapsed_total),
         "X-Image-Config-Fetch-Time": str(elapsed_config),
-        "X-Image-Fetch-Time": str(elapsed_image),
+        "X-Image-Fetch-Time": str(elapsed_fetch_image),
         "X-Processing-Time": str(elapsed_inference),
         "X-Processing-First-Inference-Time": str(inference_dur_first),
         "X-Processing-Second-To-Last-Inference-Avg-Time": str(inference_dur_second_to_last_avg),
@@ -652,7 +850,18 @@ def handle(request):
 
     response = make_response(json.dumps(output), 200, headers)
     response.mimetype = "application/json"
-    
+    if MODEL_RUN_ON == 'cpu':
+        semaphore.release()
+     
     #In case of async request, the response will be sent to the callback url given as header by queue-worker of OpenFaaS.
     return response, detected_objects, error
 
+
+def help():
+    msg = ''' App Help:
+Use Use-Local-Image as a header in your HTTP request forexecution on local image2.jpg 
+
+    '''
+    return msg
+
+print(help(), flush=True)

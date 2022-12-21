@@ -1,4 +1,4 @@
-license# Copyright (c) Alex Ellis 2017. All rights reserved.
+# Copyright (c) Alex Ellis 2017. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 from distutils.log import debug
@@ -16,6 +16,8 @@ lock = threading.Lock()
 app = Flask(__name__)
 app.config["DEBUG"] = True
 app.debug=True
+
+counter = 0
 
 # distutils.util.strtobool() can throw an exception
 def is_true(val):
@@ -43,8 +45,10 @@ def main_route(path):
     # if is_true(raw_body):
     #     as_text = False
     # ret = handler.handle(request.get_data(as_text=as_text))
+    global counter
+    counter +=1
 
-    ret, detected_objects, error = handler.handle(request)
+    ret, detected_objects, error = handler.handle(request, counter)
     if len(error)>0:
         return error, 400
     else:
@@ -114,7 +118,7 @@ def config():
     
     #write
     if request.method == 'POST':
-
+        
         print('A config update started.', flush=True)
         if not request.is_json:
             return "mimetype does NOT indicate JSON data, either application/json or application/*+json", 400
@@ -144,6 +148,9 @@ def config():
                 config.add_section(requestedSection)
             #update all keys/values in this section (or create newly requested keys/values)
             for updateKey, updateValue in new_config[requestedSection].items():
+                if updateKey == 'WAITRESS_THREADS':
+                    print('WAITRESS_THREADS is immutable; otherwise, you have to configure waitress to reload by a change in its config to apply this change.', flush=True)
+                    return 'WAITRESS_THREADS is immutable; otherwise, you have to configure waitress to reload by a change in its config to apply this change.', 400
                 config[requestedSection][updateKey] = updateValue
                 
         #persist the updates
@@ -182,4 +189,6 @@ def server_info():
 
 
 if __name__ == '__main__':
-    serve(app, host='0.0.0.0', port=5000)
+    print("serve(app, host='0.0.0.0', port=5000, threads=" + str(int(os.getenv("WAITRESS_THREADS", 4))) + ")", flush=True)
+    serve(app, host='0.0.0.0', port=5000, threads=int(os.getenv("WAITRESS_THREADS", 4)))
+    #if app.run(...threaded=True)

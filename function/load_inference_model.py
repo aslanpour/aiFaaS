@@ -125,7 +125,7 @@ def load_gpu_model(MODEL_RUN_ON, MODEL_DIR_GPU, MODEL_GPU_FILE, MODEL_LABEL_FILE
 
 
 #laod a model 
-def load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT):
+def load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS):
     start = time.perf_counter()
     
     error_load = ""
@@ -154,6 +154,7 @@ def load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE,
     
 
     # Import TensorFlow libraries
+    
     # If tflite_runtime is installed, import interpreter from tflite_runtime, else import from regular tensorflow
     # If using Coral Edge TPU, import the load_delegate library
     pkg = importlib.util.find_spec('tflite_runtime')
@@ -210,7 +211,7 @@ def load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE,
         try:
             # The value for load_delegate is different on MacOS and Windows
             interpreter_get = Interpreter(model_path=PATH_TO_CKPT,
-                                experimental_delegates=[load_delegate('libedgetpu.so.1.0')])
+                                experimental_delegates=[load_delegate('libedgetpu.so.1.0')], num_threads=int(MODEL_CPU_TPU_INTERPRETER_THREADS))
             #print(PATH_TO_CKPT)
         except Exception as e:
             print('Make sure --privileged --user root -v /dev/bus/usb:/dev/bus/usb is given to the container', flush=True)
@@ -220,7 +221,7 @@ def load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE,
     else:
         #cpu
         try:
-            interpreter_get = Interpreter(model_path=PATH_TO_CKPT)
+            interpreter_get = Interpreter(model_path=PATH_TO_CKPT, num_threads=int(MODEL_CPU_TPU_INTERPRETER_THREADS))
         except Exception as e:
             error_load += '\nLoading CPU model failed where PATH_TO_CKPT=' + PATH_TO_CKPT + '\n' + str(e)
             return interpreter_get, floating_model, input_mean, input_std, input_details, output_details, boxes_idx, classes_idx,scores_idx, labels, error_load

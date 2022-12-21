@@ -1,6 +1,7 @@
 FROM --platform=${TARGETPLATFORM:-linux/arm64} openfaas/of-watchdog:0.7.7 as watchdog
 #To build GPU enabled image, use dustynv/jetson-inference:r32.7.1 base image instead of python:3.7-slim-buster and uncomment lines titled "[GPU]".
 #To build non-GPU enabled image, use python:3.7-slim-buster base image instead of dustynv/jetson-inference:r32.7.1 and comment  lines titled "[GPU]".
+#Ro build for amd64, replace amd64 with amr64 in two places for base images.
 
 #Image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
 FROM --platform=${TARGETPLATFORM:-linux/arm64} dustynv/jetson-inference:r32.7.1
@@ -13,6 +14,7 @@ FROM --platform=${TARGETPLATFORM:-linux/arm64} dustynv/jetson-inference:r32.7.1
 #To use TPU or GPU, container user must have root privileged or use "--user root" flag
 #To use GPU, enable nvidia runtime on host level or container level by passing "--runtime nvidia" flag
 #To use TPU, pass "--privileged" flag to the container (and for first use of TPU on a node, use "-v /dev/bus/usb:/dev/bus/usb"). Verify by docker inspect --format='{{.HostConfig.Privileged}}' [container_id]
+#To preload TPU and GPU, use tag --env MODEL_PRE_LOAD=yes
 #docker run -d -t -p 5000:5000 --privileged --user root -v /dev/bus/usb:/dev/bus/usb --name tpu <docker_image_name>
 #docker exec -i -t gpu bash
 #docker logs gpu
@@ -72,12 +74,12 @@ RUN apt-get -qy update
 RUN apt-get install -y libedgetpu1-std
 
 #Install python modules (names is only for GPU image)
-RUN python3 -m pip install --upgrade pip && python3 -m pip install numpy Pillow argparse requests configparser names
+RUN python3 -m pip install --upgrade pip && python3 -m pip install numpy Pillow argparse requests configparser names minio
 RUN python3 -m pip install 'protobuf>=3.18.0,<4'
 
 #Note:Tensorflow lite examples require protobuf>=3.18.0,<4, but not sure if not practising that will cause an issue. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
 #[CPU/TPU] 
-RUN apt-get install -y python3-pycoral
+RUN  apt-get update -y && apt-get install -y python3-pycoral
 RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
 #Note1 for pycoral: Although Pycoral package is installed, it might not be recognized, so it is reinstalled by the above command (https://coral.ai/software/#pycoral-api) 
 #according to the discussion in here: https://github.com/google-coral/pycoral/issues/24. If this also did not work, build the wheel, 
@@ -198,6 +200,9 @@ WORKDIR /home/app/images
 RUN wget --content-disposition https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/test_images/image1.jpg -O image1.jpg
 RUN wget --content-disposition https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/test_images/image2.jpg -O image2.jpg
 
+#Copy test images
+COPY /images .
+
 #Codes
 WORKDIR /home/app/
 
@@ -271,6 +276,9 @@ ENV mode="http"
 ENV upstream_url="http://127.0.0.1:5000"
 
 HEALTHCHECK --interval=5s CMD [ -e /tmp/.lock ] || exit 1
+
+LABEL org.opencontainers.image.source=https://hub.docker.com/repository/docker/aslanpour/ssd
+LABEL org.opencontainers.image.description="My container image"
 
 CMD ["fwatchdog"]
 #CMD ['/bin/bash']
