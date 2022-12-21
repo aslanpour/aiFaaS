@@ -1,0 +1,518 @@
+[CPU]
+#Deployment
+k apply -f ssd-cpu-deployment.yaml
+deployment.apps/ssd-cpu created
+service/ssd-cpu created
+
+k get deploy
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+ssd-cpu   1/1     1            1           76s
+
+k get pod
+NAME                      READY   STATUS    RESTARTS   AGE
+ssd-cpu-cbb974b6d-rp6h7   1/1     Running   0          102s
+
+k logs deploy/ssd-cpu
+
+Forking - python [index.py]
+2022/12/21 05:48:10 Started logging stderr from function.
+2022/12/21 05:48:10 Started logging stdout from function.
+2022/12/21 05:48:10 OperationalMode: http
+2022/12/21 05:48:10 Metrics listening on port: 8081
+2022/12/21 05:48:10 Timeouts: read: 10s, write: 10s hard: 10s.
+2022/12/21 05:48:10 Listening on port: 8080
+2022/12/21 05:48:10 Writing lock-file to: /tmp/.lock
+2022/12/21 05:48:15 stdout: Search for TPU...
+2022/12/21 05:48:15 stdout: TPU not found (hardware search: lsusb=Google Inc. or Global Unichip Corp. and software search: tflite/tensorflow and pycoral
+2022/12/21 05:48:15 stdout: If this is not an expected behavior,
+2022/12/21 05:48:15 stdout: Make sure USB and privileged permissions are given to container.
+2022/12/21 05:48:15 stdout: Make sure USB devices are enabled by echo '2-1' |sudo tee /sys/bus/usb/drivers/usb/bind)
+2022/12/21 05:48:15 stdout: MODEL_SUPPORTED_RESOURCES_TPU=no
+2022/12/21 05:48:15 stdout: Search for GPU...
+2022/12/21 05:48:15 stdout: Search for GPU hardware by CMD = cat /proc/device-tree/model failed (maybe --previliged is not given to the container)
+2022/12/21 05:48:15 stdout: 
+2022/12/21 05:48:15 stdout: GPU not found (hardware search: cat /proc/device-tree/model and software search: import jetson)
+2022/12/21 05:48:15 stdout: MODEL_SUPPORTED_RESOURCES_GPU=no
+2022/12/21 05:48:15 stdout: Misconfiguration: MODEL_RUN_ON=cpu, but MODEL_CPU_WORKERS (1) != WAITRESS_THREADS (4) while they better be equal and X times cpu cores.
+2022/12/21 05:48:15 stdout: Load cpu model 1 times
+2022/12/21 05:48:15 stdout: Loading inference model...  
+2022/12/21 05:48:15 stdout: MODEL_RUN_ON=cpu 
+2022/12/21 05:48:15 stdout: MODEL_DIR=/home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/ 
+2022/12/21 05:48:15 stdout: MODEL_CPU_FILE=model.cpu.tflite 
+2022/12/21 05:48:15 stdout: MODEL_TPU_FILE=model.edgetpu.tflite 
+2022/12/21 05:48:15 stdout: MODEL_LABEL_FILE=labelmap.txt
+2022/12/21 05:48:15 stdout: labels loaded in 2.2ms from /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/labelmap.txt
+2022/12/21 05:48:15 stdout: model loaded to tensorflow in 8.1ms from /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/model.cpu.tflite
+2022/12/21 05:48:15 stdout: Loading model finished in 76.5ms
+2022/12/21 05:48:15 stdout: loading a model failed:
+2022/12/21 05:48:15 stdout: 
+2022/12/21 05:48:15 stdout:  App Help:
+2022/12/21 05:48:15 stdout: Use Use-Local-Image as a header in your HTTP request forexecution on local image2.jpg 
+2022/12/21 05:48:15 stdout: 
+2022/12/21 05:48:15 stdout:     
+2022/12/21 05:48:15 stdout: serve(app, host='0.0.0.0', port=5000, threads=4)
+
+
+k get svc
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+kubernetes   ClusterIP   10.43.0.1      <none>        443/TCP    134d
+ssd-cpu      ClusterIP   10.43.241.81   <none>        8080/TCP   8m45s
+
+
+curl -X GET -i -H "Use-Local-Image: image1.jpg"  http://10.43.241.81:8080/
+HTTP/1.1 200 OK
+Content-Length: 96
+Content-Type: application/json
+Date: Wed, 21 Dec 2022 05:09:53 GMT
+Sensor-Id: None
+Server: waitress
+Start-Time: 1671599393.378065
+X-Counter: 1
+X-Duration-Seconds: 1.377161
+X-Elapsed-Time: 1.324732780456543
+X-Image-Config-Fetch-Time: 0.012106895446777344
+X-Image-Fetch-Time: 0.10883712768554688
+X-Image-Preprocessing-Time: 0.1297140121459961
+X-Kubernetes_deployment_name: None
+X-Kubernetes_service_ip: 10.43.0.1
+X-Kubernetes_service_port: 443
+X-Load-Model-Time: 0.0001399517059326172
+X-Model_cpu_file: model.cpu.tflite
+X-Model_dir: /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/
+X-Model_image_dir: /home/app/images/
+X-Model_image_get: single
+X-Model_image_sample1: /home/app/images/image1.jpg
+X-Model_image_sample2: /home/app/images/image2.jpg
+X-Model_inference_repeat: 1
+X-Model_label_file: labelmap.txt
+X-Model_min_confidence_threshold: 0.5
+X-Model_run_on: cpu
+X-Model_tpu_file: model.edgetpu.tflite
+X-Node-Name: w7
+X-Pod-Host-Ip: 10.0.0.97
+X-Pod-Ip: 10.42.6.233
+X-Pod-Ips: 10.42.6.233
+X-Pod-Name: ssd-cpu-868d96579d-dhdns
+X-Pod-Namespace: default
+X-Pod-Uid: eea1672b-b8ae-4faf-96af-abb8caa5eca3
+X-Processing-First-Inference-Time: 1.0696659088134766
+X-Processing-Second-To-Last-Inference-Avg-Time: 1.0696659088134766
+X-Processing-Time: 1.0724658966064453
+X-Start-Time: 1671599393.378065
+X-Who_executed: cpu
+X-Worker-Ip: 10.42.6.233
+X-Worker-Name: ssd-cpu-868d96579d-dhdns
+
+{"detected_objects": [{"object": "dog", "confidence": 73}, {"object": "dog", "confidence": 69}]}
+
+#it uses the counter to every time pick one different pick
+curl -X GET -i -H "Use-Local-Image: 1-10"  http://10.43.241.81:8080/
+curl -X POST -i -F image_file=@./test.jpg  http://10.43.241.81:8080/
+curl -X POST -H "Image-URL:http://Image-server-address/" http://10.43.241.81:8080/
+curl -X GET -i -H "Image-URL: http://localhostmachine:port-number/api-address/file-name"  http://10.43.241.81:8080/
+
+k logs deploy/ssd-cpu
+
+2022/12/21 05:09:53 stdout: Misconfiguration: MODEL_RUN_ON=cpu, but MODEL_CPU_WORKERS (1) != WAITRESS_THREADS (4) while they better be equal and X times cpu cores.
+2022/12/21 05:09:53 stdout: using sample image= image1.jpg
+2022/12/21 05:09:53 stdout: mode run on cpu
+2022/12/21 05:09:53 stdout: interpreter_cpu
+2022/12/21 05:09:54 stdout: 1069.7ms
+2022/12/21 05:09:54 stdout: {'object': 'dog', 'confidence': 73}
+2022/12/21 05:09:54 stdout: {'object': 'dog', 'confidence': 69}
+2022/12/21 05:09:54 stdout: [{'object': 'dog', 'confidence': 73}, {'object': 'dog', 'confidence': 69}]
+2022/12/21 05:09:54 GET / - 200 OK - ContentLength: 96
+
+
+
+
+#config options
+MODEL_RUN_ON
+if the model is not loaded, it loads it and assigns the image to it for inference now on.
+MODEL_MIN_CONFIDENCE_THRESHOLD
+default if 0.5
+MODEL_INFERENCE_REPEAT
+default 1
+
+or load a different CPU model (from the first load of container only, not on the fly):
+MODEL_CPU_FILE
+
+k delete -f sample-deployment/ssd-cpu-deployment.yaml
+
+
+[TPU]
+k apply -f sample-deployment/ssd-tpu-deployment.yaml
+
+k get logs deploy/ssd-tpu
+Forking - python [index.py]
+2022/12/21 05:39:34 Started logging stderr from function.
+2022/12/21 05:39:34 Started logging stdout from function.
+2022/12/21 05:39:34 OperationalMode: http
+2022/12/21 05:39:35 Timeouts: read: 10s, write: 10s hard: 10s.
+2022/12/21 05:39:35 Listening on port: 8080
+2022/12/21 05:39:35 Writing lock-file to: /tmp/.lock
+2022/12/21 05:39:35 Metrics listening on port: 8081
+2022/12/21 05:39:39 stdout: Search for TPU...
+2022/12/21 05:39:39 stdout: MODEL_SUPPORTED_RESOURCES_TPU=yes
+2022/12/21 05:39:39 stdout: Search for GPU...
+2022/12/21 05:39:39 stdout: GPU hardware search by /proc/device-tree/model did not fail, but it did not find the device as a GPU supported one, including NVIDIA Jetson Nano, Jetson-AGX, or quill
+2022/12/21 05:39:39 stdout: GPU not found (hardware search: cat /proc/device-tree/model and software search: import jetson)
+2022/12/21 05:39:39 stdout: MODEL_SUPPORTED_RESOURCES_GPU=no
+2022/12/21 05:39:40 stdout: Preload models...
+2022/12/21 05:39:40 stdout: Load cpu model 1 times
+2022/12/21 05:39:40 stdout: Loading inference model...  
+2022/12/21 05:39:40 stdout: MODEL_RUN_ON=cpu 
+2022/12/21 05:39:40 stdout: MODEL_DIR=/home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/ 
+2022/12/21 05:39:40 stdout: MODEL_CPU_FILE=model.cpu.tflite 
+2022/12/21 05:39:40 stdout: MODEL_TPU_FILE=model.edgetpu.tflite 
+2022/12/21 05:39:40 stdout: MODEL_LABEL_FILE=labelmap.txt
+2022/12/21 05:39:40 stdout: labels loaded in 1.1ms from /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/labelmap.txt
+2022/12/21 05:39:40 stdout: model loaded to tensorflow in 4.0ms from /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/model.cpu.tflite
+2022/12/21 05:39:40 stdout: Loading model finished in 37.9ms
+2022/12/21 05:39:40 stdout: Load tpu model... 
+2022/12/21 05:39:40 stdout: Loading inference model...  
+2022/12/21 05:39:40 stdout: MODEL_RUN_ON=tpu 
+2022/12/21 05:39:40 stdout: MODEL_DIR=/home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/ 
+2022/12/21 05:39:40 stdout: MODEL_CPU_FILE=model.cpu.tflite 
+2022/12/21 05:39:40 stdout: MODEL_TPU_FILE=model.edgetpu.tflite 
+2022/12/21 05:39:40 stdout: MODEL_LABEL_FILE=labelmap.txt
+2022/12/21 05:39:40 stdout: labels loaded in 1.3ms from /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/labelmap.txt
+2022/12/21 05:39:44 stdout: model loaded to tensorflow in 4637.8ms from /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/model.edgetpu.tflite
+2022/12/21 05:39:45 stdout: Loading model finished in 4974.0ms
+2022/12/21 05:39:45 stdout: All requested models are preloaded
+2022/12/21 05:39:45 stdout:  App Help:
+2022/12/21 05:39:45 stdout: Use Use-Local-Image as a header in your HTTP request forexecution on local image2.jpg 
+2022/12/21 05:39:45 stdout: 
+2022/12/21 05:39:45 stdout:     
+2022/12/21 05:39:45 stdout: serve(app, host='0.0.0.0', port=5000, threads=1)
+
+
+k get svc
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+kubernetes   ClusterIP   10.43.0.1      <none>        443/TCP    134d
+ssd-tpu      ClusterIP   10.43.10.132   <none>        8080/TCP   4m22s
+
+curl -X GET -i -H "Use-Local-Image: image1.jpg"  http://10.43.10.132:8080/
+HTTP/1.1 200 OK
+Content-Length: 96
+Content-Type: application/json
+Date: Wed, 21 Dec 2022 05:44:44 GMT
+Sensor-Id: None
+Server: waitress
+Start-Time: 1671601484.201172
+X-Counter: 1
+X-Duration-Seconds: 0.787130
+X-Elapsed-Time: 0.7550888061523438
+X-Image-Config-Fetch-Time: 0.012733936309814453
+X-Image-Fetch-Time: 0.14858603477478027
+X-Image-Preprocessing-Time: 0.23888492584228516
+X-Kubernetes_deployment_name: None
+X-Kubernetes_service_ip: 10.43.0.1
+X-Kubernetes_service_port: 443
+X-Load-Model-Time: 0.0002880096435546875
+X-Model_cpu_file: model.cpu.tflite
+X-Model_dir: /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/
+X-Model_image_dir: /home/app/images/
+X-Model_image_get: single
+X-Model_image_sample1: /home/app/images/image1.jpg
+X-Model_image_sample2: /home/app/images/image2.jpg
+X-Model_inference_repeat: 1
+X-Model_label_file: labelmap.txt
+X-Model_min_confidence_threshold: 0.5
+X-Model_run_on: tpu
+X-Model_tpu_file: model.edgetpu.tflite
+X-Node-Name: w7
+X-Pod-Host-Ip: 10.0.0.97
+X-Pod-Ip: 10.42.6.234
+X-Pod-Ips: 10.42.6.234
+X-Pod-Name: ssd-tpu-cbb974b6d-rp6h7
+X-Pod-Namespace: default
+X-Pod-Uid: 7f17466e-5807-437f-817b-2adb4541c009
+X-Processing-First-Inference-Time: 0.3510019779205322
+X-Processing-Second-To-Last-Inference-Avg-Time: 0.3510019779205322
+X-Processing-Time: 0.3534529209136963
+X-Start-Time: 1671601484.201172
+X-Who_executed: tpu
+X-Worker-Ip: 10.42.6.234
+X-Worker-Name: ssd-tpu-cbb974b6d-rp6h7
+
+{"detected_objects": [{"object": "dog", "confidence": 73}, {"object": "dog", "confidence": 70}]}
+
+
+
+k logs deploy/ssd-tpu
+2022/12/21 05:44:44 stdout: counter= 1
+2022/12/21 05:44:44 stdout: using sample image= image1.jpg
+2022/12/21 05:44:44 stdout: mode run on tpu
+2022/12/21 05:44:44 stdout: interpreter_tpu
+2022/12/21 05:44:44 stdout: 351.0ms
+2022/12/21 05:44:44 stdout: {'object': 'dog', 'confidence': 73}
+2022/12/21 05:44:44 stdout: {'object': 'dog', 'confidence': 70}
+2022/12/21 05:44:44 stdout: [{'object': 'dog', 'confidence': 73}, {'object': 'dog', 'confidence': 70}]
+2022/12/21 05:44:44 GET / - 200 OK - ContentLength: 96
+
+
+k delete -f sample-deployment/ssd-tpu-deployment.yaml
+
+
+
+
+[GPU]
+k apply -f sample-deployment/ssd-gpu-deployment.yaml
+
+k logs deploy/ssd-gpu
+Forking - python [index.py]
+2022/12/21 08:30:06 Started logging stderr from function.
+2022/12/21 08:30:06 Started logging stdout from function.
+2022/12/21 08:30:06 OperationalMode: http
+2022/12/21 08:30:06 Timeouts: read: 10s, write: 10s hard: 10s.
+2022/12/21 08:30:06 Listening on port: 8080
+2022/12/21 08:30:06 Writing lock-file to: /tmp/.lock
+2022/12/21 08:30:06 Metrics listening on port: 8081
+2022/12/21 08:30:09 stdout: Search for TPU...
+2022/12/21 08:30:09 stdout: TPU not found (hardware search: lsusb=Google Inc. or Global Unichip Corp. and software search: tflite/tensorflow and pycoral
+2022/12/21 08:30:09 stdout: If this is not an expected behavior,
+2022/12/21 08:30:09 stdout: Make sure USB and privileged permissions are given to container.
+2022/12/21 08:30:09 stdout: Make sure USB devices are enabled by echo '2-1' |sudo tee /sys/bus/usb/drivers/usb/bind)
+2022/12/21 08:30:09 stdout: MODEL_SUPPORTED_RESOURCES_TPU=no
+2022/12/21 08:30:09 stdout: Search for GPU...
+2022/12/21 08:30:09 stdout: GPU hardware is detected. Lets search for its software...
+2022/12/21 08:30:09 stdout: MODEL_SUPPORTED_RESOURCES_GPU=yes
+2022/12/21 08:30:09 stdout: Preload models...
+2022/12/21 08:30:09 stdout: Load cpu model 1 times
+2022/12/21 08:30:09 stdout: Loading inference model...  
+2022/12/21 08:30:09 stdout: MODEL_RUN_ON=cpu 
+2022/12/21 08:30:09 stdout: MODEL_DIR=/home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/ 
+2022/12/21 08:30:09 stdout: MODEL_CPU_FILE=model.cpu.tflite 
+2022/12/21 08:30:09 stdout: MODEL_TPU_FILE=model.edgetpu.tflite 
+2022/12/21 08:30:09 stdout: MODEL_LABEL_FILE=labelmap.txt
+2022/12/21 08:30:09 stdout: labels loaded in 1.4ms from /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/labelmap.txt
+2022/12/21 08:30:09 stdout: model loaded to tensorflow in 91.4ms from /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/model.cpu.tflite
+2022/12/21 08:30:09 stdout: Loading model finished in 132.3ms
+2022/12/21 08:30:09 stdout: Load gpu model... 
+2022/12/21 08:30:10 stdout: Loading inference model:  
+2022/12/21 08:30:10 stdout: MODEL_RUN_ON=gpu  
+2022/12/21 08:30:10 stdout: MODEL_DIR_GPU=/home/app/networks/SSD-Mobilenet-v1/ 
+2022/12/21 08:30:10 stdout: MODEL_GPU_FILE=ssd_mobilenet_v1_coco.uff 
+2022/12/21 08:30:10 stdout: MODEL_LABEL_FILE_GPU=ssd_coco_labels.txt
+2022/12/21 08:30:26 stdout: 
+2022/12/21 08:30:26 stdout: detectNet -- loading detection network model from:
+2022/12/21 08:30:26 stdout:           -- model        networks/SSD-Mobilenet-v1/ssd_mobilenet_v1_coco.uff
+2022/12/21 08:30:26 stdout:           -- input_blob   'Input'
+2022/12/21 08:30:26 stdout:           -- output_blob  'Postprocessor'
+2022/12/21 08:30:26 stdout:           -- output_count 'Postprocessor_1'
+2022/12/21 08:30:26 stdout:           -- class_labels networks/SSD-Mobilenet-v1/ssd_coco_labels.txt
+2022/12/21 08:30:26 stdout:           -- threshold    0.500000
+2022/12/21 08:30:26 stdout:           -- batch_size   1
+2022/12/21 08:30:26 stdout: 
+2022/12/21 08:30:26 stdout: [TRT]    TensorRT version 8.2.1
+2022/12/21 08:30:26 stdout: [TRT]    loading NVIDIA plugins...
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::GridAnchor_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::GridAnchorRect_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::NMS_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::Reorg_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::Region_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::Clip_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::LReLU_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::PriorBox_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::Normalize_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::ScatterND version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::RPROI_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::BatchedNMS_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::BatchedNMSDynamic_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Could not register plugin creator -  ::FlattenConcat_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::CropAndResize version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::DetectionLayer_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::EfficientNMS_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::EfficientNMS_ONNX_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::EfficientNMS_TFTRT_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::Proposal version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::ProposalLayer_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::PyramidROIAlign_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::ResizeNearest_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::Split version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::SpecialSlice_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    Registered plugin creator - ::InstanceNormalization_TRT version 1
+2022/12/21 08:30:26 stdout: [TRT]    detected model format - UFF  (extension '.uff')
+2022/12/21 08:30:26 stdout: [TRT]    desired precision specified for GPU: FASTEST
+2022/12/21 08:30:26 stdout: [TRT]    requested fasted precision for device GPU without providing valid calibrator, disabling INT8
+2022/12/21 08:30:26 stdout: [TRT]    [MemUsageChange] Init CUDA: CPU +230, GPU +0, now: CPU 263, GPU 3603 (MiB)
+2022/12/21 08:30:26 stdout: [TRT]    [MemUsageSnapshot] Begin constructing builder kernel library: CPU 263 MiB, GPU 3590 MiB
+2022/12/21 08:30:26 stdout: [TRT]    [MemUsageSnapshot] End constructing builder kernel library: CPU 292 MiB, GPU 3623 MiB
+2022/12/21 08:30:26 stdout: [TRT]    native precisions detected for GPU:  FP32, FP16
+2022/12/21 08:30:26 stdout: [TRT]    selecting fastest native precision for GPU:  FP16
+2022/12/21 08:30:26 stdout: [TRT]    attempting to open engine cache file networks/SSD-Mobilenet-v1/ssd_mobilenet_v1_coco.uff.1.1.8201.GPU.FP16.engine
+2022/12/21 08:30:26 stdout: [TRT]    loading network plan from engine cache... networks/SSD-Mobilenet-v1/ssd_mobilenet_v1_coco.uff.1.1.8201.GPU.FP16.engine
+2022/12/21 08:30:26 stdout: [TRT]    device GPU, loaded networks/SSD-Mobilenet-v1/ssd_mobilenet_v1_coco.uff
+2022/12/21 08:30:26 stdout: [TRT]    [MemUsageChange] Init CUDA: CPU +0, GPU +0, now: CPU 277, GPU 3577 (MiB)
+2022/12/21 08:30:26 stdout: [TRT]    Loaded engine size: 13 MiB
+2022/12/21 08:30:26 stdout: [TRT]    Using an engine plan file across different models of devices is not recommended and is likely to affect performance or even cause errors.
+2022/12/21 08:30:26 stdout: [TRT]    Using cublas as a tactic source
+2022/12/21 08:30:26 stdout: [TRT]    [MemUsageChange] Init cuBLAS/cuBLASLt: CPU +158, GPU -55, now: CPU 454, GPU 3551 (MiB)
+2022/12/21 08:30:26 stdout: [TRT]    Using cuDNN as a tactic source
+2022/12/21 08:30:26 stdout: [TRT]    [MemUsageChange] Init cuDNN: CPU +240, GPU -15, now: CPU 694, GPU 3536 (MiB)
+2022/12/21 08:30:26 stdout: [TRT]    Deserialization required 11592464 microseconds.
+2022/12/21 08:30:26 stdout: [TRT]    [MemUsageChange] TensorRT-managed allocation in engine deserialization: CPU +0, GPU +13, now: CPU 0, GPU 13 (MiB)
+2022/12/21 08:30:26 stdout: [TRT]    Using cublas as a tactic source
+2022/12/21 08:30:26 stdout: [TRT]    [MemUsageChange] Init cuBLAS/cuBLASLt: CPU +0, GPU +4, now: CPU 694, GPU 3570 (MiB)
+2022/12/21 08:30:26 stdout: [TRT]    Using cuDNN as a tactic source
+2022/12/21 08:30:26 stdout: [TRT]    [MemUsageChange] Init cuDNN: CPU +0, GPU +0, now: CPU 694, GPU 3570 (MiB)
+2022/12/21 08:30:27 stdout: [TRT]    Total per-runGPU Model ssd-mobilenet-v1 loaded in 16.810237646102905 sec
+2022/12/21 08:30:27 stdout: Load labels file
+2022/12/21 08:30:33 stdout: {'object': 'dog', 'confidence': 0.87548828125}
+2022/12/21 08:30:33 stdout: {'object': 'dog', 'confidence': 0.91796875}
+2022/12/21 08:30:33 stdout: gpu_inference() lasted for 5.6424901485443115
+2022/12/21 08:30:33 stdout: Loading and testing model finished in 23501.8ms
+2022/12/21 08:30:33 stdout: All requested models are preloaded
+2022/12/21 08:30:33 stdout:  App Help:
+2022/12/21 08:30:33 stdout: Use Use-Local-Image as a header in your HTTP request forexecution on local image2.jpg 
+2022/12/21 08:30:33 stdout: 
+2022/12/21 08:30:33 stdout:     
+2022/12/21 08:30:33 stdout: serve(app, host='0.0.0.0', port=5000, threads=4)
+
+
+
+k get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+kubernetes   ClusterIP   10.43.0.1       <none>        443/TCP    134d
+ssd-gpu      ClusterIP   10.43.161.179   <none>        8080/TCP   3m11s
+
+
+curl -X GET -i -H "Use-Local-Image: image1.jpg"  http://10.43.161.179:8080/
+HTTP/1.1 200 OK
+Content-Length: 96
+Content-Type: application/json
+Date: Wed, 21 Dec 2022 08:34:23 GMT
+Sensor-Id: None
+Server: waitress
+Start-Time: 1671611663.915178
+X-Counter: 1
+X-Duration-Seconds: 0.886464
+X-Elapsed-Time: 0.6370658874511719
+X-Image-Config-Fetch-Time: 0.0038089752197265625
+X-Image-Fetch-Time: 0.3703939914703369
+X-Image-Preprocessing-Time: 0.13592100143432617
+X-Kubernetes_deployment_name: None
+X-Kubernetes_service_ip: 10.43.0.1
+X-Kubernetes_service_port: 443
+X-Load-Model-Time: 3.600120544433594e-05
+X-Model_cpu_file: model.cpu.tflite
+X-Model_dir: /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/
+X-Model_image_dir: /home/app/images/
+X-Model_image_get: single
+X-Model_image_sample1: /home/app/images/image1.jpg
+X-Model_image_sample2: /home/app/images/image2.jpg
+X-Model_inference_repeat: 1
+X-Model_label_file: labelmap.txt
+X-Model_min_confidence_threshold: 0.5
+X-Model_run_on: gpu
+X-Model_tpu_file: model.edgetpu.tflite
+X-Node-Name: w5
+X-Pod-Host-Ip: 10.0.0.95
+X-Pod-Ip: 10.42.9.23
+X-Pod-Ips: 10.42.9.23
+X-Pod-Name: ssd-gpu-85d78586bb-wfcqm
+X-Pod-Namespace: default
+X-Pod-Uid: fad2578d-7203-44a8-aca6-607feb418930
+X-Processing-First-Inference-Time: 0.12638401985168457
+X-Processing-Second-To-Last-Inference-Avg-Time: 0.12638401985168457
+X-Processing-Time: 0.12666583061218262
+X-Start-Time: 1671611663.915178
+X-Who_executed: gpu
+X-Worker-Ip: 10.42.9.23
+X-Worker-Name: ssd-gpu-85d78586bb-wfcqm
+
+{"detected_objects": [{"object": "dog", "confidence": 87}, {"object": "dog", "confidence": 91}]}
+
+
+k logs deploy/ssd-gpu
+2022/12/21 08:34:23 stdout: counter= 1
+2022/12/21 08:34:23 stdout: using sample image= image1.jpg
+2022/12/21 08:34:24 stdout: mode run on gpu
+2022/12/21 08:34:24 stdout: interpreter_gpu
+2022/12/21 08:34:24 stdout: 126.4ms
+2022/12/21 08:34:24 stdout: {'object': 'dog', 'confidence': 87}
+2022/12/21 08:34:24 stdout: {'object': 'dog', 'confidence': 91}
+2022/12/21 08:34:24 stdout: [{'object': 'dog', 'confidence': 87}, {'object': 'dog', 'confidence': 91}]
+2022/12/21 08:34:24 GET / - 200 OK - ContentLength: 96
+
+
+k delete -f sample-deployment/ssd-gpu-deployment.yaml
+
+
+
+-------------------------------------------------------------------------------------
+[Function]
+
+#CPU
+k apply -f sample-deployment/ssd-cpu-function.yaml
+
+k -n openfaas-fn get function
+NAME               AGE
+ssd-cpu-function   27s
+
+k -n openfaas-fn  get deploy
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+ssd-cpu-function   1/1     1            1           60s
+
+k -n openfaas-fn  get svc
+NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+ssd-cpu-function   ClusterIP   10.43.224.168   <none>        8080/TCP   2m40s
+
+
+curl -X GET -i -H "Use-Local-Image: image1.jpg"  http://10.0.0.90:31112/function/ssd-cpu-function/
+
+
+k delete -f sample-deployment/ssd-cpu-function.yaml
+
+
+#TPU
+k apply -f sample-deployment/ssd-tpu-function.yaml
+
+curl -X GET -i -H "Use-Local-Image: image1.jpg"  http://10.0.0.90:31112/function/ssd-tpu-function/
+#TPU
+HTTP/1.1 200 OK
+Content-Length: 96
+Content-Type: application/json
+Date: Wed, 21 Dec 2022 06:20:11 GMT
+Sensor-Id: None
+Server: waitress
+Start-Time: 1671603611.885129
+X-Call-Id: 638fa9d9-a1fc-4937-bf56-dab3996d1275
+X-Counter: 1
+X-Duration-Seconds: 1.343330
+X-Elapsed-Time: 1.3151249885559082
+X-Image-Config-Fetch-Time: 0.01079416275024414
+X-Image-Fetch-Time: 0.10414814949035645
+X-Image-Preprocessing-Time: 0.21821212768554688
+X-Kubernetes_deployment_name: None
+X-Kubernetes_service_ip: 10.43.0.1
+X-Kubernetes_service_port: 443
+X-Load-Model-Time: 0.0002491474151611328
+X-Model_cpu_file: model.cpu.tflite
+X-Model_dir: /home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/
+X-Model_image_dir: /home/app/images/
+X-Model_image_get: single
+X-Model_image_sample1: /home/app/images/image1.jpg
+X-Model_image_sample2: /home/app/images/image2.jpg
+X-Model_inference_repeat: 1
+X-Model_label_file: labelmap.txt
+X-Model_min_confidence_threshold: 0.5
+X-Model_run_on: cpu
+X-Model_tpu_file: model.edgetpu.tflite
+X-Node-Name: None
+X-Pod-Host-Ip: None
+X-Pod-Ip: None
+X-Pod-Ips: None
+X-Pod-Name: None
+X-Pod-Namespace: None
+X-Pod-Uid: None
+X-Processing-First-Inference-Time: 0.9774200916290283
+X-Processing-Second-To-Last-Inference-Avg-Time: 0.9774200916290283
+X-Processing-Time: 0.979780912399292
+X-Start-Time: 1671603611.885129
+X-Who_executed: cpu
+X-Worker-Ip: 10.42.6.241
+X-Worker-Name: ssd-tpu-function-689fd488b9-pskgd
+
+{"detected_objects": [{"object": "dog", "confidence": 73}, {"object": "dog", "confidence": 69}]}
