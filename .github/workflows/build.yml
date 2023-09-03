@@ -19,7 +19,7 @@ jobs:
       - name: Construct the Docker image name
         id: set_name
         run: |
-            echo "DOCKER_IMAGE_NAME=${{ env.DOCKERHUB_USERNAME }}/${{ github.repository }}:${{ env.DOCKER_TAG }}" >> "$GITHUB_ENV"       
+            echo "DOCKER_IMAGE_NAME=${{ env.DOCKERHUB_USERNAME }}/${{ github.repository }}:test" >> "$GITHUB_ENV"       
 
       - name: Build Docker image
         run: |
