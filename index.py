@@ -1,5 +1,3 @@
-# Copyright (c) Alex Ellis 2017. All rights reserved.
-# Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 from distutils.log import debug
 from flask import Flask, request, jsonify
@@ -38,13 +36,7 @@ def fix_transfer_encoding():
 @app.route("/", defaults={"path": ""}, methods=["POST", "GET"])
 #@app.route("/<path:path>", methods=["POST", "GET"])
 def main_route(path):
-    # raw_body = os.getenv("RAW_BODY", "false")
 
-    # as_text = True
-
-    # if is_true(raw_body):
-    #     as_text = False
-    # ret = handler.handle(request.get_data(as_text=as_text))
     global counter
     counter +=1
 

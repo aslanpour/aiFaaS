@@ -1,7 +1,7 @@
 FROM --platform=${TARGETPLATFORM:-linux/arm64} openfaas/of-watchdog:0.7.7 as watchdog
 #To build GPU enabled image, use dustynv/jetson-inference:r32.7.1 base image instead of python:3.7-slim-buster and uncomment lines titled "[GPU]".
 #To build non-GPU enabled image, use python:3.7-slim-buster base image instead of dustynv/jetson-inference:r32.7.1 and comment  lines titled "[GPU]".
-#Ro build for amd64, replace amd64 with amr64 in two places for base images.
+#To build for amd64, replace amd64 with amr64 in two places for base images.
 
 #Image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
 FROM --platform=${TARGETPLATFORM:-linux/arm64} dustynv/jetson-inference:r32.7.1
