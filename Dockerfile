@@ -4,9 +4,9 @@ FROM --platform=${TARGETPLATFORM:-linux/arm64} openfaas/of-watchdog:0.7.7 as wat
 #To build for amd64, replace amd64 with amr64 in two places for base images.
 
 #Image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
-FROM --platform=${TARGETPLATFORM:-linux/arm64} dustynv/jetson-inference:r32.7.1
+# FROM --platform=${TARGETPLATFORM:-linux/arm64} dustynv/jetson-inference:r32.7.1
 #[CPU/TPU]
-# FROM --platform=${TARGETPLATFORM:-linux/arm64} python:3.7-slim-buster
+FROM --platform=${TARGETPLATFORM:-linux/arm64} python:3.7-slim-buster
 
 #Command to use this Docker image
 #docker build --build-arg CACHEBUST=$(date +%s) --tag localhost:6000/image_name:image_tag .
