@@ -21,7 +21,9 @@ jobs:
         run: |
             DOCKER_IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):test
             echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME" >> "$GITHUB_ENV"
-
+      - name: Push to Github Registry
+        run: |
+          echo ${{ github.token }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
       - name: Build Docker image
         run: |
           docker build -t $DOCKER_IMAGE_NAME --build-arg TARGETPLATFORM=$(uname -m) -f Dockerfile .
@@ -56,4 +58,5 @@ jobs:
         run: |
           echo "DOCKER_IMAGE_NAME= $DOCKER_IMAGE_NAME"
           docker push $DOCKER_IMAGE_NAME
+      
 
