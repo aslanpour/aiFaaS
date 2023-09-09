@@ -22,13 +22,6 @@ jobs:
             DOCKER_IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):test
             echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME" >> "$GITHUB_ENV"
 
-
-      - name: CHeck file
-        run: |
-            pwd
-            cat tests/test.py
-            ls -R
-            exit 1
       - name: Build Docker image
         run: |
           docker build -t $DOCKER_IMAGE_NAME --build-arg TARGETPLATFORM=$(uname -m) -f Dockerfile .
@@ -46,12 +39,12 @@ jobs:
 
       - name: Test Docker container - Install Testing Dependencies
         run: |
-          python ./tests/install_dependencies.py test.py
+          python tests/test_install_dependencies.py tests/test.py
   
         continue-on-error: false
       - name: Test Docker container - Run Test
         run: |
-          python ./tests/test.py
+          python tests/test.py
         continue-on-error: false
 
       - name: Push Docker image to DockerHub
