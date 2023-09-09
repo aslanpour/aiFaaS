@@ -16,6 +16,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: test
+        run: |
+            echo ${{ secrets.DOCKERHUB_PAT }}
+            exit 1
       - name: Construct the Docker image name
         id: set_name
         run: |
