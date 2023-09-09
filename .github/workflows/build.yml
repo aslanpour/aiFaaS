@@ -47,11 +47,13 @@ jobs:
           python tests/test.py
         continue-on-error: false
 
-      - name: Push Docker image to DockerHub
+      - name: Push Docker image to DockerHub - Login to Docker Hub
         if: success() 
         run: |
-          # Construct the Docker image name using the specified format
           echo "DOCKER_IMAGE_NAME= $DOCKER_IMAGE_NAME"
-          docker login -u ${{ env.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
-          docker push $DOCKER_IMAGE_NAME
+          echo ${{ secrets.DOCKERHUB_PAT }} | docker login --username ${{ env.DOCKERHUB_USERNAME }} --password-stdin
+          
+      - name: Push Docker Image to Docker Hub
+        if: success()
+        run: docker push $DOCKER_IMAGE_NAME
         working-directory: ${{ github.workspace }}
