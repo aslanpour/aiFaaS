@@ -23,7 +23,7 @@ jobs:
 
       - name: test
         run: |
-            echo "test"
+            echo "test1"
             echo ${{ secrets.DOCKERHUB_PAT }}
             exit 1
       - name: Construct the Docker image name
