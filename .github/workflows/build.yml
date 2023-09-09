@@ -16,15 +16,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Push Docker image to DockerHub - Login to Docker Hub
-        run: |
-          echo ${{ secrets.DOCKERHUB_PAT }} | docker login --username ${{ vars.DOCKERHUB_USERNAME }} --password-stdin
-
-      - name: test
-        run: |
-            echo "test1"
-            echo ${{ secrets.DOCKERHUB_PAT }}
-            exit 1
       - name: Construct the Docker image name
         id: set_name
         run: |
@@ -59,10 +50,10 @@ jobs:
       - name: Push Docker image to DockerHub - Login to Docker Hub
         if: success() 
         run: |
-          echo "DOCKER_IMAGE_NAME= $DOCKER_IMAGE_NAME"
-          echo ${{ secrets.DOCKERHUB_PAT }} | docker login --username ${{ env.DOCKERHUB_USERNAME }} --password-stdin
-          
-      - name: Push Docker Image to Docker Hub
+          echo ${{ secrets.DOCKERHUB_PAT }} | docker login --username ${{ vars.DOCKERHUB_USERNAME }} --password-stdin  
+      - name: Push Docker Image to Docker Hub - Push
         if: success()
-        run: docker push $DOCKER_IMAGE_NAME
-        working-directory: ${{ github.workspace }}
+        run: |
+          echo "DOCKER_IMAGE_NAME= $DOCKER_IMAGE_NAME"
+          docker push $DOCKER_IMAGE_NAME
+
