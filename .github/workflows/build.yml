@@ -44,12 +44,12 @@ jobs:
 
       - name: Test Docker container - Preparation
         run: |
-          python tests/install_dependencies.py test.py
+          python ./tests/install_dependencies.py test.py
   
         continue-on-error: false
       - name: Test Docker container - testing
         run: |
-          python tests/test.py
+          python ./tests/test.py
         continue-on-error: false
 
       - name: Push Docker image to DockerHub
