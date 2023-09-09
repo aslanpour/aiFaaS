@@ -16,6 +16,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Push Docker image to DockerHub - Login to Docker Hub
+        run: |
+          echo "DOCKER_IMAGE_NAME= $DOCKER_IMAGE_NAME"
+          echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login --username ${{ env.DOCKERHUB_USERNAME }} --password-stdin
+
       - name: test
         run: |
             echo "test"
