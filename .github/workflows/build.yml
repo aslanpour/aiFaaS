@@ -23,7 +23,10 @@ jobs:
             echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME" >> "$GITHUB_ENV"
 
 
-
+      - name: CHeck file
+        run: |
+            pwd
+            ls -R
       - name: Build Docker image
         run: |
           docker build -t $DOCKER_IMAGE_NAME --build-arg TARGETPLATFORM=$(uname -m) -f Dockerfile .
