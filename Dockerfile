@@ -39,7 +39,7 @@ ARG TARGET_PLATFORM=${TARGETPLATFORM:+linux/amd64}
 # ARG BASE_IMAGE_CALCULATED=${$GPU:+'dustynv/jetson-inference:r32.7.1'}
 
 # ARG BASE_IMAGE_CALCULATED=${$BASE_IMAGE_CALCULATED:-'python:3.7-slim-buster'}
-ARG BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu'}  ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster'
+ARG BASE_IMAGE_CALCULATED=${$BASE_IMAGE_FOR,, == 'gpu'}  ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster'
 
 
 
