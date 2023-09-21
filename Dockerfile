@@ -36,11 +36,11 @@ ARG TARGET_PLATFORM=${TARGETPLATFORM:-linux/amd64}
 #Set OpenFaaS watchdog base image
 FROM --platform=${TARGET_PLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdog
 
-RUN echo "hhhhhh"
-
 #Set the base image builder
 FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as builder
 
+RUN echo $TARGET_PLATFORM
+RUN echo $BASE_IMAGE
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
 RUN chmod +x /usr/bin/fwatchdog
