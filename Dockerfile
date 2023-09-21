@@ -39,8 +39,6 @@ FROM --platform=${TARGET_PLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchd
 #Set the base image builder
 FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as builder
 
-RUN echo $TARGET_PLATFORM
-RUN echo $BASE_IMAGE
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
 RUN chmod +x /usr/bin/fwatchdog
@@ -252,6 +250,9 @@ USER root
 
 #This needs a different value each time you build the image so it wont cache the application files and copies updated ones.
 ARG CACHEBUST=1 
+
+RUN echo $TARGET_PLATFORM
+RUN echo $BASE_IMAGE
 
 #The 'function' directory containes a handler.py file for object detections and load_inference_model.py. It is based on EdjeElectronics example code and edited to not use opencv. For Tensorflow Lite, you may follow examples in the Google Coral website for simplicity: https://coral.ai/docs/accelerator/get-started/#3-run-a-model-on-the-edge-tpu
 #More demos can be found in the followings: https://medium.com/@techmayank2000/object-detection-using-ssd-mobilenetv2-using-tensorflow-api-can-detect-any-single-class-from-31a31bbd0691 and https://levelup.gitconnected.com/custom-object-detection-using-tensorflow-part-1-from-scratch-41114cd2b403
