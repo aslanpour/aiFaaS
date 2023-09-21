@@ -1,7 +1,7 @@
 import requests
 
 # Define the URL and the image file path
-url = 'http://localhost:5001/'
+url = 'http://localhost:5000/'
 image_file_path = './tests/image1.jpg'
 
 # Create a dictionary with the file data
