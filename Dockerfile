@@ -36,8 +36,11 @@ ARG TARGET_PLATFORM=${TARGETPLATFORM:-linux/amd64}
 #Set OpenFaaS watchdog base image
 FROM --platform=${TARGET_PLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdog
 
+RUN echo $TARGET_PLATFORM
+
 #Set the base image builder
 FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as builder
+
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
 RUN chmod +x /usr/bin/fwatchdog
@@ -45,7 +48,7 @@ RUN chmod +x /usr/bin/fwatchdog
 ARG ADDITIONAL_PACKAGE
 # Alternatively use ADD https:// (which will not be cached by Docker builder)
 
-RUN apt-get update &&  apt-get install -y openssl ${ADDITIONAL_PACKAGE}
+RUN apt-get install openssl ${ADDITIONAL_PACKAGE}
 
 # Add non root user
 # RUN addgroup -S app && adduser app -S -G app
@@ -57,7 +60,7 @@ ENV PATH=$PATH:/home/app/.local/bin
 
 WORKDIR /home/app/
 
-# COPY index.py           .
+COPY index.py           .
 #flask and waitress
 COPY requirements.txt   .
 
@@ -66,7 +69,8 @@ COPY requirements.txt   .
 
 USER root
 RUN apt-get -qy update
-
+#Installs flask and waitress
+RUN python3 -m pip install -r requirements.txt
 
 #mostly for CPU/TPU, but also GPU -- 
 RUN apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev
@@ -83,12 +87,14 @@ RUN apt-get -qy update
 #[TPU/CPU]
 RUN apt-get install -y libedgetpu1-std
 
-
+#Install python modules (names is only for GPU image)
+RUN python3 -m pip install --upgrade pip && python3 -m pip install numpy Pillow argparse requests configparser names minio
+RUN python3 -m pip install 'protobuf>=3.18.0,<4'
 
 #Note:Tensorflow lite examples require protobuf>=3.18.0,<4, but not sure if not practising that will cause an issue. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
 #[CPU/TPU] 
 RUN  apt-get update -y && apt-get install -y python3-pycoral
-
+RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
 #Note1 for pycoral: Although Pycoral package is installed, it might not be recognized, so it is reinstalled by the above command (https://coral.ai/software/#pycoral-api) 
 #according to the discussion in here: https://github.com/google-coral/pycoral/issues/24. If this also did not work, build the wheel, 
 #example: https://blogs.sap.com/2020/02/11/containerizing-a-tensorflow-lite-edge-tpu-ml-application-with-hardware-access-on-raspbian/
@@ -214,16 +220,32 @@ COPY /images .
 #Codes
 WORKDIR /home/app/
 
-#Python requirements to be installed as root
-USER app
-RUN python3 -m pip install  --user -r requirements.txt
+######
+# USER app
+# ENV PATH=$PATH:/home/app/.local/bin
+
+# WORKDIR /home/app/
+
+# COPY index.py           .
+# #flask and waitress
+# COPY requirements.txt   .
+
+# USER root
+# RUN apt-get -qy update
+# #Installs flask and waitress
+# RUN python3 -m pip install -r requirements.txt
+
+# USER app
+#######
 
 
 #function files
 RUN mkdir -p /home/app/function
 WORKDIR /home/app/function/
 RUN touch __init__.py
-
+COPY function/requirements.txt	.
+#This requirements.txt is empty for now
+RUN python3 -m pip install --user -r requirements.txt
 
 #install function code
 USER root
@@ -231,10 +253,6 @@ USER root
 #This needs a different value each time you build the image so it wont cache the application files and copies updated ones.
 ARG CACHEBUST=1 
 
-WORKDIR /home/app/
-COPY index.py           .
-
-WORKDIR /home/app/function/
 #The 'function' directory containes a handler.py file for object detections and load_inference_model.py. It is based on EdjeElectronics example code and edited to not use opencv. For Tensorflow Lite, you may follow examples in the Google Coral website for simplicity: https://coral.ai/docs/accelerator/get-started/#3-run-a-model-on-the-edge-tpu
 #More demos can be found in the followings: https://medium.com/@techmayank2000/object-detection-using-ssd-mobilenetv2-using-tensorflow-api-can-detect-any-single-class-from-31a31bbd0691 and https://levelup.gitconnected.com/custom-object-detection-using-tensorflow-part-1-from-scratch-41114cd2b403
 #Other coppied files: test_gpu_detection.py, test_config.py, test_pioss.py
