@@ -39,7 +39,7 @@ ARG TARGET_PLATFORM=${TARGETPLATFORM:+linux/amd64}
 # ARG BASE_IMAGE_CALCULATED=${$GPU:+'dustynv/jetson-inference:r32.7.1'}
 
 # ARG BASE_IMAGE_CALCULATED=${$BASE_IMAGE_CALCULATED:-'python:3.7-slim-buster'}
-# ARG BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu'}  ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster'
+ARG BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu'}  ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster'
 
 
 
@@ -50,10 +50,10 @@ ARG TARGET_PLATFORM=${TARGETPLATFORM:+linux/amd64}
 #Set OpenFaaS watchdog base image
 FROM --platform=${TARGETPLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdog
 
-
+ARG BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu'}  ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster'
 #Set the base image builder
-# FROM --platform=${TARGETPLATFORM} ${BASE_IMAGE_CALCULATED} as builder
-FROM --platform=${TARGETPLATFORM} ${BASE_IMAGE_FOR,,} == 'gpu' ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster' as builder
+FROM --platform=${TARGETPLATFORM} ${BASE_IMAGE_CALCULATED} as builder
+
 
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
