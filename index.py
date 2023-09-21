@@ -186,5 +186,5 @@ def server_info():
 
 if __name__ == '__main__':
     print("serve(app, host='0.0.0.0', port=5000, threads=" + str(int(os.getenv("WAITRESS_THREADS", 4))) + ")", flush=True)
-    serve(app, host='0.0.0.0', port=5001, threads=int(os.getenv("WAITRESS_THREADS", 4)))
+    serve(app, host='0.0.0.0', port=5000, threads=int(os.getenv("WAITRESS_THREADS", 4)))
     #if app.run(...threaded=True)
