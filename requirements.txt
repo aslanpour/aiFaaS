@@ -1,2 +1,11 @@
 flask
 waitress
+numpy 
+Pillow 
+argparse 
+requests 
+configparser 
+names 
+minio
+protobuf>=3.18.0,<4
+--extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
