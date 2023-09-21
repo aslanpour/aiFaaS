@@ -23,33 +23,24 @@
 
 #[ARG]
 #Default value for build arguments
-#valid values='gpu'; otherwise it considers cpu and tpu
-ARG BASE_IMAGE=${BASEIMAGE:-python:3.7-slim-buster}
 
+#BASE_IMAGE defaults to the cpu base image: python:3.7-slim-buster that also works for TPU the image. 
+#Base image for GPU is dustynv/jetson-inference:r32.7.1
+#Note: GPU image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
+ARG BASE_IMAGE=${BASEIMAGE:-python:3.7-slim-buster}
 
 #valid values='linux/amd64' and 'linux/arm64'
 #Note: if both --platform and --build-arg TARGETPLATFORM are set, the latter takes precedence over the former.
-#The '+' is to to set empty string is variable is not set. Helpful to ask ocker to consider the host platform as the base.
+#If TARGETPLATFORM is set, the value is linux/amd64; otherwise, empty is the value because of '+'. Helpful to ask docker to consider the host platform as the base.
 ARG TARGET_PLATFORM=${TARGETPLATFORM:+linux/amd64}
-
-#Calculate the base image name, depending on the lowercased value of BASE_IMAGE_FOR 
-#which defaults to the cpu base image: python:3.7-slim-buster that also works for TPU the image. 
-#Note: #Image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
-# ENV BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu' && echo 'dustynv/jetson-inference:r32.7.1' || echo 'python:3.7-slim-buster'}
-# ARG BASE_IMAGE_CALCULATED=${$GPU:+'dustynv/jetson-inference:r32.7.1'}
-
-# ARG BASE_IMAGE_CALCULATED=${$BASE_IMAGE_CALCULATED:-'python:3.7-slim-buster'}
-# ARG BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu'}  ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster'
-
 
 
 #[Base Image]
 #Set OpenFaaS watchdog base image
-FROM --platform=${TARGETPLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdog
+FROM --platform=${TARGET_PLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdog
 
 #Set the base image builder
-FROM --platform=${TARGETPLATFORM} ${BASE_IMAGE} as builder
-
+FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as builder
 
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
