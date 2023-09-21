@@ -21,19 +21,24 @@
 #docker run -d -t -p 5000:5000 --privileged --user root -v /dev/bus/usb:/dev/bus/usb --name tpu <docker_image_name>
 
 
-#[INPUT PREPARATION]
+#[ARG]
 #Default value for build arguments
 #valid values='gpu'; otherwise it considers cpu and tpu
 ARG BASE_IMAGE_FOR=cpu
+ARG GPU
+
 #valid values='linux/amd64' and 'linux/arm64'
 #Note: if both --platform and --build-arg TARGETPLATFORM are set, the latter takes precedence over the former.
-ARG TARGET_PLATFORM=linux/amd64 
+#The '+' is to to set empty string is variable is not set. Helpful to ask ocker to consider the host platform as the base.
+ARG TARGET_PLATFORM=${TARGETPLATFORM:+linux/amd64}
 
 #Calculate the base image name, depending on the lowercased value of BASE_IMAGE_FOR 
 #which defaults to the cpu base image: python:3.7-slim-buster that also works for TPU the image. 
 #Note: #Image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
-ENV BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu' && echo 'dustynv/jetson-inference:r32.7.1' || echo 'python:3.7-slim-buster'}
+# ENV BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu' && echo 'dustynv/jetson-inference:r32.7.1' || echo 'python:3.7-slim-buster'}
+ENV BASE_IMAGE_CALCULATED=${$GPU:+'dustynv/jetson-inference:r32.7.1'}
 
+ENV BASE_IMAGE_CALCULATED=${$BASE_IMAGE_CALCULATED:-'python:3.7-slim-buster'}
 # ARG BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu'}  ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster'
 
 
