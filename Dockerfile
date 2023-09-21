@@ -251,6 +251,7 @@ USER root
 #This needs a different value each time you build the image so it wont cache the application files and copies updated ones.
 ARG CACHEBUST=1 
 
+ARG BASE_IMAGE
 RUN echo $TARGET_PLATFORM
 RUN echo $BASE_IMAGE
 RUN echo "$BASE_IMAGE"
