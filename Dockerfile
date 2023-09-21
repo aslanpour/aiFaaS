@@ -36,10 +36,19 @@ ARG TARGET_PLATFORM=${TARGETPLATFORM:+linux/amd64}
 #which defaults to the cpu base image: python:3.7-slim-buster that also works for TPU the image. 
 #Note: #Image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
 # ENV BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu' && echo 'dustynv/jetson-inference:r32.7.1' || echo 'python:3.7-slim-buster'}
-ARG BASE_IMAGE_CALCULATED=${$GPU:+'dustynv/jetson-inference:r32.7.1'}
+# ARG BASE_IMAGE_CALCULATED=${$GPU:+'dustynv/jetson-inference:r32.7.1'}
 
-ARG BASE_IMAGE_CALCULATED=${$BASE_IMAGE_CALCULATED:-'python:3.7-slim-buster'}
+# ARG BASE_IMAGE_CALCULATED=${$BASE_IMAGE_CALCULATED:-'python:3.7-slim-buster'}
 # ARG BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu'}  ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster'
+
+
+# Determine BASE_IMAGE_CALCULATED based on BASE_IMAGE_FOR
+RUN if [ "${BASE_IMAGE_FOR,,}" = "gpu" ]; then \
+      export BASE_IMAGE_CALCULATED="dustynv/jetson-inference:r32.7.1"; \
+    else \
+      export BASE_IMAGE_CALCULATED="python:3.7-slim-buster"; \
+    fi
+
 
 
 #[Base Image]
