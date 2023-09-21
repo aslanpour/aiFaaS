@@ -92,7 +92,6 @@ RUN apt-get install -y libedgetpu1-std
 # RUN python3 -m pip install --upgrade pip && python3 -m pip install numpy Pillow argparse requests configparser names minio
 # RUN python3 -m pip install 'protobuf>=3.18.0,<4'
 
-COPY . /home/app/
 RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
 #Note:Tensorflow lite examples require protobuf>=3.18.0,<4, but not sure if not practising that will cause an issue. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
 #[CPU/TPU] 
