@@ -92,10 +92,11 @@ RUN apt-get install -y libedgetpu1-std
 # RUN python3 -m pip install --upgrade pip && python3 -m pip install numpy Pillow argparse requests configparser names minio
 # RUN python3 -m pip install 'protobuf>=3.18.0,<4'
 
-RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
+
 #Note:Tensorflow lite examples require protobuf>=3.18.0,<4, but not sure if not practising that will cause an issue. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
 #[CPU/TPU] 
 RUN  apt-get update -y && apt-get install -y python3-pycoral
+RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
 # RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
 #Note1 for pycoral: Although Pycoral package is installed, it might not be recognized, so it is reinstalled by the above command (https://coral.ai/software/#pycoral-api) 
 #according to the discussion in here: https://github.com/google-coral/pycoral/issues/24. If this also did not work, build the wheel, 
