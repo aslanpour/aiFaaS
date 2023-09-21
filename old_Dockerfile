@@ -1,47 +1,27 @@
-#[Guide]
-#Build command:
-#docker build --build-arg CACHEBUST=$(date +%s) --tag image_name:image_tag .
+FROM --platform=${TARGETPLATFORM:-linux/arm64} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdog
+#To build GPU enabled image, use dustynv/jetson-inference:r32.7.1 base image instead of python:3.7-slim-buster and uncomment lines titled "[GPU]".
+#To build non-GPU enabled image, use python:3.7-slim-buster base image instead of dustynv/jetson-inference:r32.7.1 and comment  lines titled "[GPU]".
+#To build for amd64, replace amd64 with amr64 in two places for base images.
 
-#Notes: 
-#After 'CACHEBUST' everything will be reloaded to avoid caching.
+#Image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
+# FROM --platform=${TARGETPLATFORM:-linux/arm64} dustynv/jetson-inference:r32.7.1
+#[CPU/TPU]
+FROM --platform=${TARGETPLATFORM:-linux/arm64} python:3.7-slim-buster
 
-#Run command:
-#docker run -d -t <docker_image_name>
+#Command to use this Docker image
+#docker build --build-arg CACHEBUST=$(date +%s) --tag localhost:6000/image_name:image_tag .
+#--build-arg CACHEBUST=$(date +%s) sets a new value for ARG CACHEBUST in the Dockerfile so after this line everything will be loaded again per build to avoid caching.
+#To use TPU or GPU, container user must have root privileged or use "--user root" flag
+#To use GPU, enable nvidia runtime on host level or container level by passing "--runtime nvidia" flag
+#To use TPU, pass "--privileged" flag to the container (and for first use of TPU on a node, use "-v /dev/bus/usb:/dev/bus/usb"). Verify by docker inspect --format='{{.HostConfig.Privileged}}' [container_id]
+#To preload TPU and GPU, use tag --env MODEL_PRE_LOAD=yes
+#docker run -d -t -p 5000:5000 --privileged --user root -v /dev/bus/usb:/dev/bus/usb --name tpu <docker_image_name>
+#docker exec -i -t gpu bash
+#docker logs gpu
 
-#Notes:
-#Add '--user root' option to use TPU or GPU for root privileged permission (insecure)
 #In kubernetes, equivalent of --root is "runAsUser: 0" under securityContext.
-#Add '--runtime nvidia' option to enable nvidia runtime on host level or container level if not enabled on host level already.
-#Add '--privileged' option for tpu access (and for first use of TPU on a node, use "-v /dev/bus/usb:/dev/bus/usb"). 
 #In kuberneets equivalent of --privileged is privilged: true under securityContext.
 #Inkubernetes equivalent of -v /dev/bus/usb:/dev/bus/usb is to dfine volumes.
-#Add '--env <VARIABLE>' to configure the app, like '--env MODEL_PRE_LOAD=yes' to preload models
-
-#Sample run: 
-#docker run -d -t -p 5000:5000 --privileged --user root -v /dev/bus/usb:/dev/bus/usb --name tpu <docker_image_name>
-
-
-#[INPUT PREPARATION]
-#Default value for build arguments
-#valid values='gpu'; otherwise it considers cpu and tpu
-ARG BASE_IMAGE_FOR=cpu
-#valid values='linux/amd64' and 'linux/arm64'
-#Note: if both --platform and --build-arg TARGETPLATFORM are set, the latter takes precedence over the former.
-ARG TARGET_PLATFORM=linux/amd64 
-
-#Calculate the base image name, depending on the lowercased value of BASE_IMAGE_FOR 
-#which defaults to the cpu base image: python:3.7-slim-buster that also works for TPU the image. 
-#Note: #Image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
-ARG BASE_IMAGE_CALCULATED=${BASE_IMAGE_FOR,, == 'gpu'}  ? 'dustynv/jetson-inference:r32.7.1' : 'python:3.7-slim-buster'
-
-
-#[Base Image]
-#Set OpenFaaS watchdog base image
-FROM --platform=${TARGETPLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdog
-
-#Set the base image builder
-FROM --platform=${TARGETPLATFORM} ${BASE_IMAGE_CALCULATED} as builder
-
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
 RUN chmod +x /usr/bin/fwatchdog
