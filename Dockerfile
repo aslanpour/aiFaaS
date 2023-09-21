@@ -216,7 +216,7 @@ WORKDIR /home/app/
 
 #Python requirements to be installed as root
 USER app
-RUN python3 -m pip install -r requirements.txt
+RUN python3 -m pip install  --user -r requirements.txt
 
 
 #function files
