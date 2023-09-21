@@ -50,7 +50,7 @@ config = configparser.ConfigParser()
 config.add_section('Default')
 #CONFIG_FULL_PATH is meant to remain unchanged always since others read/write on this path.
 # CONFIG_FULL_PATH = config['Default']['full_path'] = os.getenv("CONFIG_FULL_PATH", "/home/ubuntu/aiFaaS/config.ini")
-CONFIG_FULL_PATH = config['Default']['full_path'] = os.getenv("CONFIG_FULL_PATH", "/home/ubuntu/aiFaaS/config.ini")
+CONFIG_FULL_PATH = config['Default']['full_path'] = os.getenv("CONFIG_FULL_PATH", "/home/app/config.ini")
 #multithreading
 WAITRESS_THREADS = config['Default']['waitress_threads'] = os.getenv("WAITRESS_THREADS", "4")
 WAITRESS_THREADS = int(WAITRESS_THREADS)
@@ -132,13 +132,16 @@ if os.getenv("MODEL_SUPPORTED_RESOURCES_GPU"):
         print('MODEL_SUPPORTED_RESOURCES_GPU is set to no because GPU is not detected.', flush=True)
 print('MODEL_SUPPORTED_RESOURCES_GPU=' + MODEL_SUPPORTED_RESOURCES_GPU, flush=True)
 
-MODEL_DIR = config['Model']['dir'] = os.getenv("MODEL_DIR", '/home/ubuntu/aiFaaS/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/')
+# MODEL_DIR = config['Model']['dir'] = os.getenv("MODEL_DIR", '/home/ubuntu/aiFaaS/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/')
+MODEL_DIR = config['Model']['dir'] = os.getenv("MODEL_DIR", '/home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/')
 MODEL_CPU_FILE = config['Model']['cpu_file'] = os.getenv("MODEL_CPU_FILE", "model.cpu.tflite")
 MODEL_TPU_FILE = config['Model']['tpu_file'] = os.getenv("MODEL_TPU_FILE", "model.edgetpu.tflite")
 MODEL_LABEL_FILE = config['Model']['label_file'] = os.getenv("MODEL_LABEL_FILE", "labelmap.txt")
 MODEL_IMAGE_GET = config['Model']['image_get'] = os.getenv("MODEL_IMAGE_GET", 'single') #or batch that will feed from image_dir
-MODEL_IMAGE_DIR = config['Model']['image_dir'] = os.getenv("MODEL_IMAGE_DIR", "/home/ubuntu/aiFaaS/images/")
-MODEL_IMAGE_SAMPLE1 = config['Model']['image_sample1'] = os.getenv("MODEL_IMAGE_SAMPLE1", "/home/ubuntu/aiFaaS/images/image1.jpg")
+# MODEL_IMAGE_DIR = config['Model']['image_dir'] = os.getenv("MODEL_IMAGE_DIR", "/home/ubuntu/aiFaaS/images/")
+MODEL_IMAGE_DIR = config['Model']['image_dir'] = os.getenv("MODEL_IMAGE_DIR", "/home/app/images/")
+# MODEL_IMAGE_SAMPLE1 = config['Model']['image_sample1'] = os.getenv("MODEL_IMAGE_SAMPLE1", "/home/ubuntu/aiFaaS/images/image1.jpg")
+MODEL_IMAGE_SAMPLE1 = config['Model']['image_sample1'] = os.getenv("MODEL_IMAGE_SAMPLE1", "/home/app/images/image1.jpg")
 MODEL_IMAGE_SAMPLE2 = config['Model']['image_sample2'] = os.getenv("MODEL_IMAGE_SAMPLE2", "/home/ubuntu/aiFaaS/images/image2.jpg")
 MODEL_MIN_CONFIDENCE_THRESHOLD = config['Model']['min_confidence_threshold'] = os.getenv("MODEL_MIN_CONFIDENCE_THRESHOLD", '0.5')
 MODEL_INFERENCE_REPEAT = config['Model']['inference_repeat'] = os.getenv("MODEL_INFERENCE_REPEAT", '1')
@@ -153,7 +156,8 @@ MODEL_CPU_WORKERS = config['Model']['cpu_workers'] = os.getenv("MODEL_CPU_WORKER
 MODEL_CPU_WORKERS = int(MODEL_CPU_WORKERS)
 
 #GPU
-MODEL_DIR_GPU = config['Model']['dir_gpu'] = os.getenv("MODEL_DIR_GPU", '/home/ubuntu/aiFaaS/networks/SSD-Mobilenet-v1/')
+# MODEL_DIR_GPU = config['Model']['dir_gpu'] = os.getenv("MODEL_DIR_GPU", '/home/ubuntu/aiFaaS/networks/SSD-Mobilenet-v1/')
+MODEL_DIR_GPU = config['Model']['dir_gpu'] = os.getenv("MODEL_DIR_GPU", '/home/app/networks/SSD-Mobilenet-v1/')
 MODEL_GPU_FILE = config['Model']['gpu_file'] = os.getenv("MODEL_GPU_FILE", "ssd_mobilenet_v1_coco.uff")
 MODEL_LABEL_FILE_GPU = config['Model']['label_file_gpu'] = os.getenv("MODEL_LABEL_FILE_GPU", "ssd_coco_labels.txt")
 MODEL_GPU_BUILTIN_NETWORK = config['Model']['gpu_builtin_network'] = os.getenv("MODEL_GPU_BUILTIN_NETWORK", "ssd-mobilenet-v1")
