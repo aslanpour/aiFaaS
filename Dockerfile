@@ -214,7 +214,7 @@ COPY /images .
 #Codes
 WORKDIR /home/app/
 
-
+USER root
 #Installs flask and waitress
 RUN python3 -m pip install -r requirements.txt
 
