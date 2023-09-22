@@ -39,6 +39,10 @@ jobs:
 
       - name: Logs of Docker run
         run: docker logs test
+        
+      - name: Inspect Docker Container
+        run: docker exec -it test tree /home/app/
+
       - name: Test Docker container - Install Testing Dependencies
         run: |
           python tests/test_install_dependencies.py tests/test.py
