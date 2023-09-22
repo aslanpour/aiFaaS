@@ -147,7 +147,7 @@ COPY --from=base /usr/bin /usr/bin
 COPY --from=base /lib /lib
 COPY --from=base /lib64 /lib64
 COPY --from=base /usr/lib /usr/lib
-COPY --from=base /usr/lib64 /usr/lib64
+# COPY --from=base /usr/lib64 /usr/lib64
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
 RUN chmod +x /usr/bin/fwatchdog
