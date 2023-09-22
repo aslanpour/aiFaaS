@@ -31,7 +31,7 @@ import importlib.util
 from pycoral.adapters import common
 from PIL import Image
 from . import load_inference_model
-
+from . import inference
 import threading
 import multiprocessing
 
@@ -49,8 +49,8 @@ import configparser
 config = configparser.ConfigParser()
 config.add_section('Default')
 #CONFIG_FULL_PATH is meant to remain unchanged always since others read/write on this path.
-# CONFIG_FULL_PATH = config['Default']['full_path'] = os.getenv("CONFIG_FULL_PATH", "/home/ubuntu/aiFaaS/config.ini")
-CONFIG_FULL_PATH = config['Default']['full_path'] = os.getenv("CONFIG_FULL_PATH", "/home/app/config.ini")
+CONFIG_FULL_PATH = config['Default']['full_path'] = os.getenv("CONFIG_FULL_PATH", "/home/ubuntu/aiFaaS/config.ini")
+# CONFIG_FULL_PATH = config['Default']['full_path'] = os.getenv("CONFIG_FULL_PATH", "/home/app/config.ini")
 #multithreading
 WAITRESS_THREADS = config['Default']['waitress_threads'] = os.getenv("WAITRESS_THREADS", "4")
 WAITRESS_THREADS = int(WAITRESS_THREADS)
@@ -132,17 +132,15 @@ if os.getenv("MODEL_SUPPORTED_RESOURCES_GPU"):
         print('MODEL_SUPPORTED_RESOURCES_GPU is set to no because GPU is not detected.', flush=True)
 print('MODEL_SUPPORTED_RESOURCES_GPU=' + MODEL_SUPPORTED_RESOURCES_GPU, flush=True)
 
-# MODEL_DIR = config['Model']['dir'] = os.getenv("MODEL_DIR", '/home/ubuntu/aiFaaS/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/')
-MODEL_DIR = config['Model']['dir'] = os.getenv("MODEL_DIR", '/home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/')
+MODEL_DIR = config['Model']['dir'] = os.getenv("MODEL_DIR", '/home/ubuntu/aiFaaS/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/')
+# MODEL_DIR = config['Model']['dir'] = os.getenv("MODEL_DIR", '/home/app/networks/tensorflow-lite/SSD-MobileNet-V1-300-300-TF1-90obj/')
 MODEL_CPU_FILE = config['Model']['cpu_file'] = os.getenv("MODEL_CPU_FILE", "model.cpu.tflite")
 MODEL_TPU_FILE = config['Model']['tpu_file'] = os.getenv("MODEL_TPU_FILE", "model.edgetpu.tflite")
 MODEL_LABEL_FILE = config['Model']['label_file'] = os.getenv("MODEL_LABEL_FILE", "labelmap.txt")
 MODEL_IMAGE_GET = config['Model']['image_get'] = os.getenv("MODEL_IMAGE_GET", 'single') #or batch that will feed from image_dir
-# MODEL_IMAGE_DIR = config['Model']['image_dir'] = os.getenv("MODEL_IMAGE_DIR", "/home/ubuntu/aiFaaS/images/")
-MODEL_IMAGE_DIR = config['Model']['image_dir'] = os.getenv("MODEL_IMAGE_DIR", "/home/app/images/")
-# MODEL_IMAGE_SAMPLE1 = config['Model']['image_sample1'] = os.getenv("MODEL_IMAGE_SAMPLE1", "/home/ubuntu/aiFaaS/images/image1.jpg")
-MODEL_IMAGE_SAMPLE1 = config['Model']['image_sample1'] = os.getenv("MODEL_IMAGE_SAMPLE1", "/home/app/images/image1.jpg")
-MODEL_IMAGE_SAMPLE2 = config['Model']['image_sample2'] = os.getenv("MODEL_IMAGE_SAMPLE2", "/home/ubuntu/aiFaaS/images/image2.jpg")
+MODEL_IMAGE_DIR = config['Model']['image_dir'] = os.getenv("MODEL_IMAGE_DIR", "/home/ubuntu/aiFaaS/images/")
+# MODEL_IMAGE_DIR = config['Model']['image_dir'] = os.getenv("MODEL_IMAGE_DIR", "/home/app/images/")
+MODEL_IMAGE_SAMPLE1 = config['Model']['image_sample1'] = os.getenv("MODEL_IMAGE_SAMPLE1", "/home/ubuntu/aiFaaS/images/image1.jpg")
 MODEL_MIN_CONFIDENCE_THRESHOLD = config['Model']['min_confidence_threshold'] = os.getenv("MODEL_MIN_CONFIDENCE_THRESHOLD", '0.5')
 MODEL_INFERENCE_REPEAT = config['Model']['inference_repeat'] = os.getenv("MODEL_INFERENCE_REPEAT", '1')
 #number of thread workers the tensorflow will spawn to do the object detection per task. Default is 1.
@@ -156,8 +154,8 @@ MODEL_CPU_WORKERS = config['Model']['cpu_workers'] = os.getenv("MODEL_CPU_WORKER
 MODEL_CPU_WORKERS = int(MODEL_CPU_WORKERS)
 
 #GPU
-# MODEL_DIR_GPU = config['Model']['dir_gpu'] = os.getenv("MODEL_DIR_GPU", '/home/ubuntu/aiFaaS/networks/SSD-Mobilenet-v1/')
-MODEL_DIR_GPU = config['Model']['dir_gpu'] = os.getenv("MODEL_DIR_GPU", '/home/app/networks/SSD-Mobilenet-v1/')
+MODEL_DIR_GPU = config['Model']['dir_gpu'] = os.getenv("MODEL_DIR_GPU", '/home/ubuntu/aiFaaS/networks/SSD-Mobilenet-v1/')
+# MODEL_DIR_GPU = config['Model']['dir_gpu'] = os.getenv("MODEL_DIR_GPU", '/home/app/networks/SSD-Mobilenet-v1/')
 MODEL_GPU_FILE = config['Model']['gpu_file'] = os.getenv("MODEL_GPU_FILE", "ssd_mobilenet_v1_coco.uff")
 MODEL_LABEL_FILE_GPU = config['Model']['label_file_gpu'] = os.getenv("MODEL_LABEL_FILE_GPU", "ssd_coco_labels.txt")
 MODEL_GPU_BUILTIN_NETWORK = config['Model']['gpu_builtin_network'] = os.getenv("MODEL_GPU_BUILTIN_NETWORK", "ssd-mobilenet-v1")
@@ -214,7 +212,7 @@ internal_session.mount(
 
 #update config: in case config.ini is updated, apply the changes in the assocciated variables.
 def get_latest_config(lock):
-    global CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU, MODEL_CPU_WORKERS
+    global CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU, MODEL_CPU_WORKERS
     with lock:
         config = configparser.ConfigParser()
         config.read(CONFIG_FULL_PATH)
@@ -236,8 +234,7 @@ def get_latest_config(lock):
         MODEL_LABEL_FILE_GPU = config['Model']['label_file_gpu']
         MODEL_IMAGE_GET = config['Model']['image_get'] 
         MODEL_IMAGE_DIR = config['Model']['image_dir'] 
-        MODEL_IMAGE_SAMPLE1 = config['Model']['image_sample1'] 
-        MODEL_IMAGE_SAMPLE2 = config['Model']['image_sample2'] 
+        MODEL_IMAGE_SAMPLE1 = config['Model']['image_sample1']  
         MODEL_MIN_CONFIDENCE_THRESHOLD = config['Model']['min_confidence_threshold'] 
         MODEL_INFERENCE_REPEAT = config['Model']['inference_repeat'] 
         MODEL_CPU_TPU_INTERPRETER_THREADS = config['Model']['interpreter_cpu_tpu_threads']
@@ -260,7 +257,7 @@ def get_latest_config(lock):
                         + ') ==1 while it can be X times CPU cores.', flush=True)
         
 
-    return CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT,MODEL_CPU_TPU_INTERPRETER_THREADS, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU, MODEL_CPU_WORKERS
+    return CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT,MODEL_CPU_TPU_INTERPRETER_THREADS, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU, MODEL_CPU_WORKERS
 
 
 
@@ -274,7 +271,7 @@ floating_model_cpu, input_mean_cpu, input_std_cpu, input_details_cpu, output_det
 
 #should it pre load models for supported resources?
 if MODEL_PRE_LOAD == 'yes':
-    print('Preload models...')
+    print('Preload models...', flush=True)
     #bring all models up if the resource is supported
     #cpu
     if MODEL_SUPPORTED_RESOURCES_CPU == 'yes':
@@ -285,7 +282,7 @@ if MODEL_PRE_LOAD == 'yes':
             interpreter_cpu[i], floating_model_cpu[i], input_mean_cpu[i], input_std_cpu[i], input_details_cpu[i], output_details_cpu[i], boxes_idx_cpu[i], classes_idx_cpu[i],scores_idx_cpu[i], labels_cpu[i], error_tmp[i] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
 
             if error_tmp[i]:
-                print('loading a model failed:\n' + str(error_tmp[i]), flush=True)
+                print('loading a model failed???????????:\n' + str(error_tmp[i]), flush=True)
                 print(str(len(error_tmp)))
     #tpu
     if MODEL_SUPPORTED_RESOURCES_TPU == 'yes':
@@ -293,14 +290,14 @@ if MODEL_PRE_LOAD == 'yes':
         MODEL_RUN_ON = 'tpu'
         interpreter_tpu, floating_model_tpu, input_mean_tpu, input_std_tpu, input_details_tpu, output_details_tpu, boxes_idx_tpu, classes_idx_tpu,scores_idx_tpu, labels_tpu, error_tmp[0] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
         if error_tmp[0]:
-            print('loading a model failed:\n' + str(error_tmp[0]), flush=True)
+            print('loading a model failed???????????????:\n' + str(error_tmp[0]), flush=True)
     #gpu
     if MODEL_SUPPORTED_RESOURCES_GPU == 'yes':
         print('Load gpu model... ', flush=True)
         MODEL_RUN_ON = 'gpu'
         interpreter_gpu, labels_gpu, error_tmp[0] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
         if error_tmp[0]:
-            print('loading a model failed:\n' + str(error_tmp[0]), flush=True)
+            print('loading a model failed?????????????:\n' + str(error_tmp[0]), flush=True)
 
     #fix MODEL_RUN_ON
     MODEL_RUN_ON = CURRENT_MODEL_RUN_ON
@@ -320,12 +317,12 @@ elif MODEL_PRE_LOAD == 'cpu-only':
             interpreter_cpu[i] = interpreter_cpu_tmp
             # import copy
             # interpreter_cpu[i] = copy.deepcopy(interpreter_cpu_tmp)
-            print('loading a model failed:\n' + str(error_tmp[0]), flush=True)
+            print('loading a model failed??????????:\n' + str(error_tmp[0]), flush=True)
             
 elif MODEL_PRE_LOAD == 'no':
     print('No model is loaded', flush=True)
 else:
-    print('ERROR: MODEL_PRE_LOAD=' + MODEL_PRE_LOAD + ', but must be yes, no, or cpu-only.')
+    print('ERROR: MODEL_PRE_LOAD=' + MODEL_PRE_LOAD + ', but must be yes, no, or cpu-only.', flush=True)
 
 
 
@@ -340,7 +337,7 @@ def handle(request, counter):
     """
     print('counter= ' + str(counter))
 
-    global CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_LABEL_FILE, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_RUN_ON, MODEL_CPU_WORKERS, MODEL_CPU_TPU_INTERPRETER_THREADS
+    global CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_LABEL_FILE, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_RUN_ON, MODEL_CPU_WORKERS, MODEL_CPU_TPU_INTERPRETER_THREADS
     global CURRENT_MODEL_RUN_ON
 
     global lock
@@ -351,7 +348,6 @@ def handle(request, counter):
 
 
     global semaphore
-    # semaphore.acquire()
     
     worker_index = counter % MODEL_CPU_WORKERS
 
@@ -362,7 +358,7 @@ def handle(request, counter):
     #Get latest config
     start = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
     try:
-        CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_IMAGE_SAMPLE2, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU,MODEL_CPU_WORKERS = get_latest_config(lock)
+        CONFIG_FULL_PATH, WAITRESS_THREADS, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_GPU_BUILTIN_NETWORK, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_IMAGE_GET, MODEL_IMAGE_DIR, MODEL_IMAGE_SAMPLE1, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS, MODEL_RUN_ON, MODEL_SUPPORTED_RESOURCES_CPU, MODEL_SUPPORTED_RESOURCES_TPU, MODEL_SUPPORTED_RESOURCES_GPU,MODEL_CPU_WORKERS = get_latest_config(lock)
     except Exception as e:
         error = 'Get latest config: ' + str(e)
         return None, None, error
@@ -700,100 +696,19 @@ def handle(request, counter):
     start = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
     #gpu adds new detection in the new repeat to the previous detectted objects while cpu and tpu do independent detections. That is GPU can find new objects in new iterations.
     detected_objects = []
-    #first inference may take longer due to loading the model (is not the case here) and/or enabled DVFS.
-    inference_dur_first = 0
-    inference_dur_second_to_last = 0
-    for i in range(int(MODEL_INFERENCE_REPEAT)):
-        start_rep = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
+    if MODEL_RUN_ON == 'cpu':
+        img_cuda, input_details_tpu,labels_gpu,output_details_tpu,boxes_idx_tpu,classes_idx_tpu,scores_idx_tpu,labels_tpu= None,None,None,None,None,None,None,None
+        detected_objects, who_executed,inference_dur_first,inference_dur_second_to_last = inference.run_inference(MODEL_INFERENCE_REPEAT,MODEL_RUN_ON,interpreter_worker,img_cuda,worker_index,input_details_cpu,input_data,input_details_tpu,labels_gpu,MODEL_MIN_CONFIDENCE_THRESHOLD,output_details_cpu,boxes_idx_cpu,classes_idx_cpu,scores_idx_cpu,output_details_tpu,boxes_idx_tpu,classes_idx_tpu,scores_idx_tpu,labels_cpu,labels_tpu)
+    elif MODEL_RUN_ON == 'tpu':
+        img_cuda,input_details_cpu,labels_gpu,output_details_cpu,boxes_idx_cpu,classes_idx_cpu,scores_idx_cpu,labels_cpu=None,None,None,None,None,None,None,None,
+        detected_objects, who_executed,inference_dur_first,inference_dur_second_to_last = inference.run_inference(MODEL_INFERENCE_REPEAT,MODEL_RUN_ON,interpreter_worker,img_cuda,worker_index,input_details_cpu,input_data,input_details_tpu,labels_gpu,MODEL_MIN_CONFIDENCE_THRESHOLD,output_details_cpu,boxes_idx_cpu,classes_idx_cpu,scores_idx_cpu,output_details_tpu,boxes_idx_tpu,classes_idx_tpu,scores_idx_tpu,labels_cpu,labels_tpu)
+    elif MODEL_RUN_ON == 'gpu':
+        worker_index,input_details_cpu,input_data,input_details_tpu,output_details_cpu,boxes_idx_cpu,classes_idx_cpu,scores_idx_cpu,output_details_tpu,boxes_idx_tpu,classes_idx_tpu,scores_idx_tpu,labels_cpu,labels_tpu = None,None,None,None,None,None,None,None,None,None,None,None,None,None,
+        detected_objects, who_executed,inference_dur_first,inference_dur_second_to_last = inference.run_inference(MODEL_INFERENCE_REPEAT,MODEL_RUN_ON,interpreter_worker,img_cuda,worker_index,input_details_cpu,input_data,input_details_tpu,labels_gpu,MODEL_MIN_CONFIDENCE_THRESHOLD,output_details_cpu,boxes_idx_cpu,classes_idx_cpu,scores_idx_cpu,output_details_tpu,boxes_idx_tpu,classes_idx_tpu,scores_idx_tpu,labels_cpu,labels_tpu)
+    else:
+        print(f'ERROR MODEL_RUN_ON={MODEL_RUN_ON}')
+    
 
-        # Perform the actual detection by running the model with the image as input
-        # with lock:
-
-        if MODEL_RUN_ON == 'gpu':
-            #gpu
-            #Detect
-            detections = interpreter_worker.Detect(img_cuda)
-            who_executed = 'gpu'
-
-        else: #cpu or tpu
-            if MODEL_RUN_ON == 'cpu': interpreter_worker[worker_index].set_tensor(input_details_cpu[worker_index][0]['index'] ,input_data)
-            if MODEL_RUN_ON == 'tpu': interpreter_worker.set_tensor(input_details_tpu[0]['index'] ,input_data)
-            #invoke
-            if MODEL_RUN_ON == 'cpu': 
-                interpreter_worker[worker_index].invoke()
-                who_executed = 'cpu'
-            if MODEL_RUN_ON == 'tpu': 
-                interpreter_worker.invoke()
-                who_executed = 'tpu'
-
-        elapsed_rep = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp() - start_rep
-        print('%.1fms' % (elapsed_rep * 1000), file=sys.stdout)
-        if i == 0:
-            inference_dur_first = elapsed_rep
-        else:
-            inference_dur_second_to_last += elapsed_rep
-
-
-        # Retrieve detection results
-        #gpu
-        if MODEL_RUN_ON == 'gpu':
-            #get objects
-            for detection in detections:
-                #print(detection)
-                object_name = labels_gpu[detection.ClassID]
-                confidence = detection.Confidence
-
-                #filter
-                if ((confidence > float(MODEL_MIN_CONFIDENCE_THRESHOLD)) and (confidence <= 1.0)):
-                    #other obtained values by detection are Left, Top, Right, Bottom, Width, Height, Area and Center
-                    detected_objects.append({"object": object_name, "confidence": int(confidence *100)})
-                    print({"object": object_name, "confidence": int(confidence *100)})
-            #print("detect............")
-            #for object in detected_objects:
-            #    print(object)
-        #cpu
-        elif MODEL_RUN_ON == 'cpu':
-            boxes = interpreter_worker[worker_index].get_tensor(output_details_cpu[worker_index][boxes_idx_cpu[worker_index]]['index'])
-            # Bounding box coordinates of detected objects
-            classes = interpreter_worker[worker_index].get_tensor(output_details_cpu[worker_index][classes_idx_cpu[worker_index]]['index'])[0] # Class index of detected objects
-            scores = interpreter_worker[worker_index].get_tensor(output_details_cpu[worker_index][scores_idx_cpu[worker_index]]['index'])[0] # Confidence of detected objects
-        #tpu
-        elif MODEL_RUN_ON == 'tpu':
-            boxes = interpreter_worker.get_tensor(output_details_tpu[boxes_idx_tpu]['index'])
-            # Bounding box coordinates of detected objects
-            classes = interpreter_worker.get_tensor(output_details_tpu[classes_idx_tpu]['index'])[0] # Class index of detected objects
-            scores = interpreter_worker.get_tensor(output_details_tpu[scores_idx_tpu]['index'])[0] # Confidence of detected objects
-        else:
-            pass
-
-        #filter (for cpu and tpu)
-        if MODEL_RUN_ON == 'cpu' or MODEL_RUN_ON == 'tpu':
-            #detected_objects = []
-            # Loop over all detections and draw detection box if confidence is above minimum threshold
-            for i in range(len(scores)):
-                if ((scores[i] > float(MODEL_MIN_CONFIDENCE_THRESHOLD)) and (scores[i] <= 1.0)):
-
-                    # Get bounding box coordinates and draw box
-                    # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
-                    # ymin = int(max(1,(boxes[i][0] * imH)))
-                    # xmin = int(max(1,(boxes[i][1] * imW)))
-                    # ymax = int(min(imH,(boxes[i][2] * imH)))
-                    # xmax = int(min(imW,(boxes[i][3] * imW)))
-
-                    # cv2.rectangle(image, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
-
-                    # Draw label
-                    if MODEL_RUN_ON == 'cpu':
-                        object_name = labels_cpu[worker_index][int(classes[i])] # Look up object name from "labels" array using class index
-                    else:
-                        object_name = labels_tpu[int(classes[i])] # Look up object name from "labels" array using class index
-                    #label = '%s: %d%%' % (object_name, int(scores[i ] *100)) # Example: 'person: 72%'
-                    #print(label)
-                    
-                    detected_objects.append({"object": object_name, "confidence": int(scores[i] *100)})
-                    print({"object": object_name, "confidence": int(scores[i] *100)})
-
-    #end inference loop
     inference_dur_second_to_last_avg = inference_dur_second_to_last/(int(MODEL_INFERENCE_REPEAT)-1) if int(MODEL_INFERENCE_REPEAT)>1 else inference_dur_first
     #inference total duration
     elapsed_inference = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp() - start
@@ -830,7 +745,6 @@ def handle(request, counter):
         "X-MODEL_IMAGE_GET": str(MODEL_IMAGE_GET),
         "X-MODEL_IMAGE_DIR": str(MODEL_IMAGE_DIR),
         "X-MODEL_IMAGE_SAMPLE1": str(MODEL_IMAGE_SAMPLE1),
-        "X-MODEL_IMAGE_SAMPLE2": str(MODEL_IMAGE_SAMPLE2),
         "X-MODEL_MIN_CONFIDENCE_THRESHOLD": str(MODEL_MIN_CONFIDENCE_THRESHOLD),
         "X-MODEL_INFERENCE_REPEAT": str(MODEL_INFERENCE_REPEAT),
         "X-MODEL_RUN_ON": str(MODEL_RUN_ON),
@@ -864,8 +778,13 @@ def handle(request, counter):
 
 def help():
     msg = ''' App Help:
-Use Use-Local-Image as a header in your HTTP request forexecution on local image2.jpg 
-
+curl -X POST -i -F image_file=@./images/image1.jpg  http://localhost:5001/
+MODEL_RUN_ON=cpu 
+[{'object': 'dog', 'confidence': 75}, {'object': 'dog', 'confidence': 70}]
+MODEL_RUN_ON=tpu 
+[{'object': 'dog', 'confidence': 73}, {'object': 'dog', 'confidence': 70}]
+MODEL_RUN_ON=gpu 
+[{'object': 'dog', 'confidence': 87}, {'object': 'dog', 'confidence': 91}]
     '''
     return msg
 

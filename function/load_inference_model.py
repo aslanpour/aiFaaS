@@ -4,7 +4,6 @@ import importlib.util
 import time
 
 
-
 def gpu_inference(interpreter_worker, labels, image_full_path, repeat):
     #for gpu_inference and load_gpu_model functions
     import jetson.inference

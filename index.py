@@ -92,15 +92,15 @@ def cmd():
 # res = requests.post('http://localhost:5000/config', json={"config":{"Model": {"run_on": "tpu"}}})
 # if res.ok:
 #     print(res.json())
-@app.route("/config/read", methods=['GET'], endpoint='read_config')
-@app.route("/config/write", methods=['POST'], endpoint='write_config')
+@app.route("/config", methods=['GET'], endpoint='read_config')
+@app.route("/config", methods=['POST'], endpoint='write_config')
 def config():
     #read
     if request.method == 'GET':
         #read local config file
         config = configparser.ConfigParser()
-        # config.read('/home/ubuntu/aiFaaS/config.ini')
-        config.read('/home/app/config.ini')
+        config.read('/home/ubuntu/aiFaaS/config.ini')
+        # config.read('/home/app/config.ini')
         updated_config = {s:dict(config.items(s)) for s in config.sections()}
 
         #append server info
@@ -123,11 +123,11 @@ def config():
 
         #read local config file
         config = configparser.ConfigParser()
-        # config.read('/home/ubuntu/aiFaaS/config.ini')
-        config.read('/home/app/config.ini')
+        config.read('/home/ubuntu/aiFaaS/config.ini')
+        # config.read('/home/app/config.ini')
 
-        # if config.read('/home/ubuntu/aiFaaS/config.ini') == []: print('WARNING: config.ini file is empty')
-        if config.read('/home/app/config.ini') == []: print('WARNING: config.ini file is empty')
+        if config.read('/home/ubuntu/aiFaaS/config.ini') == []: print('WARNING: config.ini file is empty')
+        # if config.read('/home/app/config.ini') == []: print('WARNING: config.ini file is empty')
 
         #Each key in new_cfg refers to a section of config file and the value refers to the subsection (key, value).
         #Sample config to be received: 
@@ -148,12 +148,12 @@ def config():
                 config[requestedSection][updateKey] = updateValue
                 
         #persist the updates
-        # with open('/home/ubuntu/aiFaaS/config.ini', 'w') as configfile:
-        with open('/home/app/config.ini', 'w') as configfile:
+        with open('/home/ubuntu/aiFaaS/config.ini', 'w') as configfile:
+        # with open('/home/app/config.ini', 'w') as configfile:
             config.write(configfile) 
 
-        # config.read('/home/ubuntu/aiFaaS/config.ini')
-        config.read('/home/app/config.ini')
+        config.read('/home/ubuntu/aiFaaS/config.ini')
+        # config.read('/home/app/config.ini')
         updated_config = {s:dict(config.items(s)) for s in config.sections()}
         return jsonify(updated_config)
 
@@ -185,6 +185,7 @@ def server_info():
 
 
 if __name__ == '__main__':
-    print("serve(app, host='0.0.0.0', port=5000, threads=" + str(int(os.getenv("WAITRESS_THREADS", 4))) + ")", flush=True)
-    serve(app, host='0.0.0.0', port=5000, threads=int(os.getenv("WAITRESS_THREADS", 4)))
+    print(f"serve(app, host='0.0.0.0', port={os.getenv('APP_PORT', 5000)}, threads={os.getenv('WAITRESS_THREADS', 4)})", flush=True)
+
+    serve(app, host='0.0.0.0', port=int(os.getenv("APP_PORT", 5000)), threads=int(os.getenv("WAITRESS_THREADS", 4)))
     #if app.run(...threaded=True)
