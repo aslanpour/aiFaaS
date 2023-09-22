@@ -98,7 +98,7 @@ RUN python3 -m pip install --user --extra-index-url https://google-coral.github.
 #tflite-runtime 2.5.0.post1
 #wheel          0.37.1
 
-#----------DATA----------
+#----------APP DATA----------
 
 USER app
 
@@ -170,7 +170,7 @@ RUN chown app /home/app
 USER app
 ENV PATH=$PATH:/home/app/.local/bin
 
-#---------COPY APP CODE & DATA------------
+#---------COPY APP DATA------------
 WORKDIR /home/app/
 COPY --from=base /home/app/* .
 # RUN touch __init__.py
@@ -212,6 +212,7 @@ COPY index.py           .
 RUN mkdir -p /home/app/function
 COPY function/ /home/app/function/
 # RUN touch __init__.py
+RUN tree .
 
 USER root
 RUN chown -R app:app ../
