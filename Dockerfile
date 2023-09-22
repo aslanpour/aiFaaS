@@ -39,12 +39,23 @@ FROM --platform=${TARGET_PLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchd
 ARG BASE_IMAGE
 ARG TARGET_PLATFORM
 
-#Set the base image builder
+#Set the base image
+FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as base
+
+COPY requirements.txt   .
+
+RUN apt-get update -y
+RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
+RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
+
+
+
+ARG BASE_IMAGE
+ARG TARGET_PLATFORM
+
 FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as builder
 
 
-COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
-RUN chmod +x /usr/bin/fwatchdog
 
 ARG ADDITIONAL_PACKAGE
 # Alternatively use ADD https:// (which will not be cached by Docker builder)
@@ -96,8 +107,12 @@ RUN apt-get install -y libedgetpu1-std
 #Note:Tensorflow lite examples require protobuf>=3.18.0,<4, but not sure if not practising that will cause an issue. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
 #[CPU/TPU] 
 RUN  apt-get update -y && apt-get install -y python3-pycoral
-RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
-RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
+# RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
+# RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
+COPY --from=base /usr/local/lib/python3.7 /usr/local/bin/python3.7
+
+COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
+RUN chmod +x /usr/bin/fwatchdog
 #Note1 for pycoral: Although Pycoral package is installed, it might not be recognized, so it is reinstalled by the above command (https://coral.ai/software/#pycoral-api) 
 #according to the discussion in here: https://github.com/google-coral/pycoral/issues/24. If this also did not work, build the wheel, 
 #example: https://blogs.sap.com/2020/02/11/containerizing-a-tensorflow-lite-edge-tpu-ml-application-with-hardware-access-on-raspbian/
