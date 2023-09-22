@@ -183,9 +183,10 @@ ENV PATH=$PATH:/home/app/.local/bin
 #---------COPY APP CODE & DATA------------
 WORKDIR /home/app/
 COPY --from=base /home/app/* .
-RUN chown -R app:app ../
 RUN touch __init__.py
 
+USER root
+RUN chown -R app:app ../
 #---------COPY PYTHON TOOLS-------------
 USER root
 
@@ -203,7 +204,7 @@ COPY --from=base /usr/lib /usr/lib
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
 RUN chmod +x /usr/bin/fwatchdog
 
-
+USER root
 RUN chown -R app:app *
 
 
