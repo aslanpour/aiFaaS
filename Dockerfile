@@ -161,7 +161,7 @@ COPY index.py           .
 
 #function files
 RUN mkdir -p /home/app/function
-COPY function/ /function/
+COPY function/ /home/app/function/
 RUN touch __init__.py
 
 
