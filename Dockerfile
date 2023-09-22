@@ -172,7 +172,7 @@ ENV PATH=$PATH:/home/app/.local/bin
 
 #---------COPY APP DATA------------
 WORKDIR /home/app/
-COPY --from=base /home/app/* .
+COPY --from=base /home/app .
 # RUN touch __init__.py
 
 USER root
