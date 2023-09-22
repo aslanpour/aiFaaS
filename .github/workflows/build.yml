@@ -27,6 +27,9 @@ jobs:
           docker build -t $DOCKER_IMAGE_NAME --build-arg TARGETPLATFORM=$(uname -m) -f Dockerfile .
           echo "### Docker Build! :rocket:" >> $GITHUB_STEP_SUMMARY
         continue-on-error: false
+        
+      - name: List Docker Images
+        run: docker images
 
       - name: Run Docker container
         run: |
