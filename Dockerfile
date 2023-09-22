@@ -45,8 +45,8 @@ FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as base
 COPY requirements.txt   .
 
 RUN apt-get update -y
-RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
-RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
+RUN python3 -m pip install --upgrade pip && python3 -m pip install --user -r requirements.txt
+RUN python3 -m pip install --user --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
 
 
 
@@ -109,7 +109,11 @@ RUN apt-get install -y libedgetpu1-std
 RUN  apt-get update -y && apt-get install -y python3-pycoral
 # RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
 # RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
-COPY --from=base /usr/local/lib/. /usr/local/bin/
+# COPY --from=base /usr/local/lib/. /usr/local/bin/
+
+COPY --from=base /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
+
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
 RUN chmod +x /usr/bin/fwatchdog
