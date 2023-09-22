@@ -20,7 +20,7 @@
 #Sample run: 
 #docker run -d -t -p 5000:5000 --privileged --user root -v /dev/bus/usb:/dev/bus/usb --name tpu <docker_image_name>
 
-
+#--------------SET ARGUMENTS------------------------------------------
 #[ARG]
 #BASE_IMAGE defaults to the cpu base image: python:3.7-slim-buster that also works for TPU the image. 
 #Base image for GPU is dustynv/jetson-inference:r32.7.1
@@ -31,13 +31,13 @@ ARG BASE_IMAGE=${BASEIMAGE:-python:3.7-slim-buster}
 #Note: if both --platform and --build-arg TARGETPLATFORM are set, the latter takes precedence over the former.
 ARG TARGET_PLATFORM=${TARGETPLATFORM:-linux/amd64}
 
-#--------------OpenFaaS Agent------------------------------------------
+#--------------BASE 1 as watchdog: OpenFaaS Agent------------------------------------------
 
 #[Base Image]
 #Set OpenFaaS watchdog base image
 FROM --platform=${TARGET_PLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdog
 
-#-----------------Base Image---------------------------------------
+#-----------------BASE 2 as base: System tools, Python tools, and App data---------------------------------------
 
 ARG BASE_IMAGE
 ARG TARGET_PLATFORM
@@ -54,6 +54,49 @@ RUN chown app /home/app
 USER app
 ENV PATH=$PATH:/home/app/.local/bin
 
+
+#---------System TOOLS--------------------
+ARG ADDITIONAL_PACKAGE
+
+USER root
+#Note: usbutils is for lsusb command that gets USB info, but this does not show Product info like Google Inc. in the container that is the name of Google TPU Coral, although it does in the host, so udevadm is installed by udev package to update usb info which is a known issue in some cases: Ref: https://www.suse.com/support/kb/doc/?id=000017623)
+RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev openssl tree ${ADDITIONAL_PACKAGE}
+RUN udevadm trigger --subsystem-match=usb
+RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
+RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+
+#install standard TPU (or with maximum frequency 'libedgetpu1-max')
+RUN apt-get -qy update && apt-get install -y libedgetpu1-std
+RUN  apt-get update -y && apt-get install -y python3-pycoral
+
+#----------APP TOOLS----------------
+
+COPY requirements.txt   .
+
+RUN apt-get update -y
+#Note:Tensorflow lite examples require protobuf>=3.18.0,<4, but not sure if not practising that will cause an issue. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
+RUN python3 -m pip install --upgrade pip && python3 -m pip install --user -r requirements.txt
+RUN python3 -m pip install --user --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
+#Note1 for pycoral: Although Pycoral package is installed, it might not be recognized, so it is reinstalled by the above command (https://coral.ai/software/#pycoral-api) 
+#according to the discussion in here: https://github.com/google-coral/pycoral/issues/24. If this also did not work, build the wheel, 
+#example: https://blogs.sap.com/2020/02/11/containerizing-a-tensorflow-lite-edge-tpu-ml-application-with-hardware-access-on-raspbian/
+#Note2: by installing pycoral package, tflite-runtime and setuptools are also installed.
+#Note3: Tensorflow Lite examples require tflite-support==0.4.0 to be installed but their code also works with tflite-runtime. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
+#Note4: connect TPU to USB 3; otherwise,  inferencing times actually increase by a factor of ×2 if mounted to USB 2. Ref https://www.hackster.io/news/benchmarking-the-intel-neural-compute-stick-on-the-new-raspberry-pi-4-model-b-e419393f2f97
+#Note5: Original USB cable of Coral TPU wont probably work on USB 2 and has limitations in speed (5Gbps); to use USB 3 or better speed, (at least mount TPU to USB 3) use 10Gbps cables. Ref:https://github.com/tensorflow/tensorflow/issues/32743 and https://www.hackster.io/news/benchmarking-the-intel-neural-compute-stick-on-the-new-raspberry-pi-4-model-b-e419393f2f97
+#Note6: For bare metal use, if ValueError: Failed to load delegate from libedgetpu.so.1, reboot the host. Ref: https://github.com/tensorflow/tensorflow/issues/32743
+#Note7: You may need to add your linux user to plugdev group. Ref: https://github.com/tensorflow/tensorflow/issues/32743. As follows: sudo usermod -aG plugdev [your username]
+
+#expected installations: python3 -m pip list
+#Installed versions
+#numpy          1.21.6
+#Pillow         9.2.0
+#pip            22.2.1
+#protobuf       4.21.4
+#pycoral        2.0.0
+#setuptools     57.5.0
+#tflite-runtime 2.5.0.post1
+#wheel          0.37.1
 
 #----------DATA----------
 
@@ -120,48 +163,6 @@ COPY index.py           .
 RUN mkdir -p /home/app/function
 COPY function/* /home/app/function/
 RUN touch __init__.py
-
-#----------APP Tools----------------
-COPY requirements.txt   .
-
-RUN apt-get update -y
-#Note:Tensorflow lite examples require protobuf>=3.18.0,<4, but not sure if not practising that will cause an issue. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
-RUN python3 -m pip install --upgrade pip && python3 -m pip install --user -r requirements.txt
-RUN python3 -m pip install --user --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
-#Note1 for pycoral: Although Pycoral package is installed, it might not be recognized, so it is reinstalled by the above command (https://coral.ai/software/#pycoral-api) 
-#according to the discussion in here: https://github.com/google-coral/pycoral/issues/24. If this also did not work, build the wheel, 
-#example: https://blogs.sap.com/2020/02/11/containerizing-a-tensorflow-lite-edge-tpu-ml-application-with-hardware-access-on-raspbian/
-#Note2: by installing pycoral package, tflite-runtime and setuptools are also installed.
-#Note3: Tensorflow Lite examples require tflite-support==0.4.0 to be installed but their code also works with tflite-runtime. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
-#Note4: connect TPU to USB 3; otherwise,  inferencing times actually increase by a factor of ×2 if mounted to USB 2. Ref https://www.hackster.io/news/benchmarking-the-intel-neural-compute-stick-on-the-new-raspberry-pi-4-model-b-e419393f2f97
-#Note5: Original USB cable of Coral TPU wont probably work on USB 2 and has limitations in speed (5Gbps); to use USB 3 or better speed, (at least mount TPU to USB 3) use 10Gbps cables. Ref:https://github.com/tensorflow/tensorflow/issues/32743 and https://www.hackster.io/news/benchmarking-the-intel-neural-compute-stick-on-the-new-raspberry-pi-4-model-b-e419393f2f97
-#Note6: For bare metal use, if ValueError: Failed to load delegate from libedgetpu.so.1, reboot the host. Ref: https://github.com/tensorflow/tensorflow/issues/32743
-#Note7: You may need to add your linux user to plugdev group. Ref: https://github.com/tensorflow/tensorflow/issues/32743. As follows: sudo usermod -aG plugdev [your username]
-
-#expected installations: python3 -m pip list
-#Installed versions
-#numpy          1.21.6
-#Pillow         9.2.0
-#pip            22.2.1
-#protobuf       4.21.4
-#pycoral        2.0.0
-#setuptools     57.5.0
-#tflite-runtime 2.5.0.post1
-#wheel          0.37.1
-
-#---------System TOOLS--------------------
-ARG ADDITIONAL_PACKAGE
-
-USER root
-#Note: usbutils is for lsusb command that gets USB info, but this does not show Product info like Google Inc. in the container that is the name of Google TPU Coral, although it does in the host, so udevadm is installed by udev package to update usb info which is a known issue in some cases: Ref: https://www.suse.com/support/kb/doc/?id=000017623)
-RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev openssl tree ${ADDITIONAL_PACKAGE}
-RUN udevadm trigger --subsystem-match=usb
-RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
-RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-
-#install standard TPU (or with maximum frequency 'libedgetpu1-max')
-RUN apt-get -qy update && apt-get install -y libedgetpu1-std
-RUN  apt-get update -y && apt-get install -y python3-pycoral
 
 
 #---------------------------------BUILD IMAGE--------------------------------
