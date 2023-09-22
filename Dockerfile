@@ -109,7 +109,7 @@ RUN apt-get install -y libedgetpu1-std
 RUN  apt-get update -y && apt-get install -y python3-pycoral
 # RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
 # RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
-COPY --from=base /usr/local/lib/python3.7 /usr/local/bin/python3.7/
+COPY --from=base /usr/local/lib/. /usr/local/bin/
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
 RUN chmod +x /usr/bin/fwatchdog
