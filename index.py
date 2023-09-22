@@ -8,6 +8,11 @@ import configparser
 import threading
 import socket
 
+#If one is testing the code locally, set 'local'
+#If one is testing the code in a container, set 'container'
+EXEC_ENV=os.getenv("EXEC_ENV", "container")
+
+
 lock = threading.Lock()
 
 app = Flask(__name__)
@@ -99,8 +104,9 @@ def config():
     if request.method == 'GET':
         #read local config file
         config = configparser.ConfigParser()
-        config.read('/home/ubuntu/aiFaaS/config.ini')
+        # config.read('/home/ubuntu/aiFaaS/config.ini')
         # config.read('/home/app/config.ini')
+        config.read(f"{'/home/ubuntu/aiFaaS/' if EXEC_ENV == 'local' else '/home/app/'}config.ini")
         updated_config = {s:dict(config.items(s)) for s in config.sections()}
 
         #append server info
@@ -123,11 +129,13 @@ def config():
 
         #read local config file
         config = configparser.ConfigParser()
-        config.read('/home/ubuntu/aiFaaS/config.ini')
+        # config.read('/home/ubuntu/aiFaaS/config.ini')
         # config.read('/home/app/config.ini')
+        config.read(f"{'/home/ubuntu/aiFaaS/' if EXEC_ENV == 'local' else '/home/app/'}config.ini")
 
-        if config.read('/home/ubuntu/aiFaaS/config.ini') == []: print('WARNING: config.ini file is empty')
+        # if config.read('/home/ubuntu/aiFaaS/config.ini') == []: print('WARNING: config.ini file is empty')
         # if config.read('/home/app/config.ini') == []: print('WARNING: config.ini file is empty')
+        if config.read(f"{'/home/ubuntu/aiFaaS/' if EXEC_ENV == 'local' else '/home/app/'}config.ini") == []: print('WARNING: config.ini file is empty')
 
         #Each key in new_cfg refers to a section of config file and the value refers to the subsection (key, value).
         #Sample config to be received: 
@@ -148,12 +156,15 @@ def config():
                 config[requestedSection][updateKey] = updateValue
                 
         #persist the updates
-        with open('/home/ubuntu/aiFaaS/config.ini', 'w') as configfile:
+        # with open('/home/ubuntu/aiFaaS/config.ini', 'w') as configfile:
         # with open('/home/app/config.ini', 'w') as configfile:
+        with open(f"{'/home/ubuntu/aiFaaS/' if EXEC_ENV == 'local' else '/home/app/'}config.ini", 'w') as configfile:
             config.write(configfile) 
 
-        config.read('/home/ubuntu/aiFaaS/config.ini')
+        # config.read('/home/ubuntu/aiFaaS/config.ini')
         # config.read('/home/app/config.ini')
+        config.read(f"{'/home/ubuntu/aiFaaS/' if EXEC_ENV == 'local' else '/home/app/'}config.ini")
+
         updated_config = {s:dict(config.items(s)) for s in config.sections()}
         return jsonify(updated_config)
 
