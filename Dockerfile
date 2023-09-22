@@ -55,7 +55,7 @@ USER app
 ENV PATH=$PATH:/home/app/.local/bin
 
 
-#---------System TOOLS--------------------
+#------------------System TOOLS--------------------
 ARG ADDITIONAL_PACKAGE
 
 USER root

@@ -41,7 +41,7 @@ jobs:
         run: docker logs test
         
       - name: Inspect Docker Container
-        run: docker exec -it test tree /home/app/
+        run: docker exec test tree /home/app
 
       - name: Test Docker container - Install Testing Dependencies
         run: |
