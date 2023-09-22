@@ -49,17 +49,8 @@ RUN python3 -m pip install --upgrade pip && python3 -m pip install --user -r req
 RUN python3 -m pip install --user --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
 
 
-
-ARG BASE_IMAGE
-ARG TARGET_PLATFORM
-
-FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as builder
-
-
-
+#####
 ARG ADDITIONAL_PACKAGE
-# Alternatively use ADD https:// (which will not be cached by Docker builder)
-
 RUN apt-get install openssl ${ADDITIONAL_PACKAGE}
 
 # Add non root user
@@ -72,25 +63,10 @@ ENV PATH=$PATH:/home/app/.local/bin
 
 WORKDIR /home/app/
 
-COPY index.py           .
-#flask and waitress
-COPY requirements.txt   .
-
-
-#Installations
-
 USER root
 RUN apt-get -qy update
-#Installs flask and waitress
-# RUN python3 -m pip install -r requirements.txt
-
-#mostly for CPU/TPU, but also GPU -- 
 RUN apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev
-#Note: usbutils is for lsusb command that gets USB info, but this does not show Product info like Google Inc. in the container that is the name of Google TPU Coral, although it does in the host, so udevadm is installed by udev package to update usb info which is a known issue in some cases: Ref: https://www.suse.com/support/kb/doc/?id=000017623)
 RUN udevadm trigger --subsystem-match=usb
-
-#[TPU/CPU] Install TPU runtime
-#Add the repository
 RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
 RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 RUN apt-get -qy update
@@ -98,6 +74,58 @@ RUN apt-get -qy update
 #install standard TPU (or with maximum frequency 'libedgetpu1-max')
 #[TPU/CPU]
 RUN apt-get install -y libedgetpu1-std
+RUN  apt-get update -y && apt-get install -y python3-pycoral
+######
+
+
+
+
+ARG BASE_IMAGE
+ARG TARGET_PLATFORM
+
+FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as builder
+
+
+
+ARG ADDITIONAL_PACKAGE
+# Alternatively use ADD https:// (which will not be cached by Docker builder)
+
+##RUN apt-get install openssl ${ADDITIONAL_PACKAGE}
+
+# Add non root user
+# RUN addgroup -S app && adduser app -S -G app
+RUN addgroup --system app && adduser app --system --ingroup app
+RUN chown app /home/app
+
+USER app
+ENV PATH=$PATH:/home/app/.local/bin
+
+WORKDIR /home/app/
+
+COPY index.py           .
+
+
+#Installations
+
+USER root
+##RUN apt-get -qy update
+#Installs flask and waitress
+# RUN python3 -m pip install -r requirements.txt
+
+#mostly for CPU/TPU, but also GPU -- 
+##RUN apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev
+#Note: usbutils is for lsusb command that gets USB info, but this does not show Product info like Google Inc. in the container that is the name of Google TPU Coral, although it does in the host, so udevadm is installed by udev package to update usb info which is a known issue in some cases: Ref: https://www.suse.com/support/kb/doc/?id=000017623)
+##RUN udevadm trigger --subsystem-match=usb
+
+#[TPU/CPU] Install TPU runtime
+#Add the repository
+##RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
+##RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+##RUN apt-get -qy update
+
+#install standard TPU (or with maximum frequency 'libedgetpu1-max')
+#[TPU/CPU]
+##RUN apt-get install -y libedgetpu1-std
 
 #Install python modules (names is only for GPU image)
 # RUN python3 -m pip install --upgrade pip && python3 -m pip install numpy Pillow argparse requests configparser names minio
@@ -106,7 +134,7 @@ RUN apt-get install -y libedgetpu1-std
 
 #Note:Tensorflow lite examples require protobuf>=3.18.0,<4, but not sure if not practising that will cause an issue. Ref: #Ref: https://github.com/tensorflow/examples/blob/master/lite/examples/object_detection/raspberry_pi/requirements.txt
 #[CPU/TPU] 
-RUN  apt-get update -y && apt-get install -y python3-pycoral
+##RUN  apt-get update -y && apt-get install -y python3-pycoral
 # RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
 # RUN python3 -m pip install --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
 # COPY --from=base /usr/local/lib/. /usr/local/bin/
@@ -114,6 +142,12 @@ RUN  apt-get update -y && apt-get install -y python3-pycoral
 COPY --from=base /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
+COPY --from=base /bin /bin 
+COPY --from=base /usr/bin /usr/bin
+COPY --from=base /lib /lib
+COPY --from=base /lib64 /lib64
+COPY --from=base /usr/lib /usr/lib
+COPY --from=base /usr/lib64 /usr/lib64
 
 COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
 RUN chmod +x /usr/bin/fwatchdog
