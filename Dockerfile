@@ -154,16 +154,6 @@ WORKDIR /home/app/images
 RUN wget --content-disposition https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/test_images/image1.jpg -O image1.jpg
 RUN wget --content-disposition https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/test_images/image2.jpg -O image2.jpg
 
-#------------APP Code-----------------
-WORKDIR /home/app/
-
-COPY index.py           .
-
-#function files
-RUN mkdir -p /home/app/function
-COPY function/ /home/app/function/
-RUN touch __init__.py
-
 
 #---------------------------------BUILD IMAGE--------------------------------
 
@@ -183,7 +173,7 @@ ENV PATH=$PATH:/home/app/.local/bin
 #---------COPY APP CODE & DATA------------
 WORKDIR /home/app/
 COPY --from=base /home/app/* .
-RUN touch __init__.py
+# RUN touch __init__.py
 
 USER root
 RUN chown -R app:app ../
@@ -208,11 +198,24 @@ USER root
 RUN chown -R app:app *
 
 
-USER root
-
+#------------APP Code-----------------
 #This needs a different value each time you build the image so it wont cache the application files and copies updated ones.
 ARG CACHEBUST=1 
 
+USER app
+
+WORKDIR /home/app/
+
+COPY index.py           .
+
+#function files
+RUN mkdir -p /home/app/function
+COPY function/ /home/app/function/
+# RUN touch __init__.py
+
+USER root
+RUN chown -R app:app ../
+#--------------Wrap up----------------------
 WORKDIR /home/app/
 
 #Allow tpu delegate for the user or run container as root; otherwise, it receives this error ValueError: Failed to load delegate from libedgetpu.so.1.0. Ref: https://github.com/tensorflow/tensorflow/issues/32743#issuecomment-543806766
