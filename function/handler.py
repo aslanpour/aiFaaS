@@ -84,6 +84,7 @@ if process.returncode != 0:
    print('Search for TPU by CMD = lsusb failed \n' + captured_error, flush=True)
 else:
     usb_devices = output.decode('utf-8')
+    print(f"USB devices:\n{usb_devices}", flush=True)
 
 # usb_devices = subprocess.check_output('lsusb', shell=True, stderr=subprocess.STDOUT, timeout=30).decode("utf-8") 
 is_tpu_available = 'yes' if 'Google Inc.' in usb_devices or 'Global Unichip Corp.' in usb_devices else 'no'
@@ -91,6 +92,10 @@ is_tpu_available = 'yes' if 'Google Inc.' in usb_devices or 'Global Unichip Corp
 pkg_tflite_tuntime = importlib.util.find_spec('tflite_runtime')
 pkg_tensorflow = importlib.util.find_spec('tensorflow')
 pkg_pycoral = importlib.util.find_spec('pycoral')
+
+print(f"TPU packages (pkg_tflite_tuntime or pkg_tensorflow) is found? {'yes' if (pkg_tflite_tuntime or pkg_tensorflow) else 'no'}", flush=True)
+print(f"TPU packages pkg_pycoral is found? {'yes' if pkg_pycoral else 'no'}", flush=True)
+
 is_tpu_available = 'yes' if is_tpu_available=='yes' and (pkg_tflite_tuntime or pkg_tensorflow) and pkg_pycoral else 'no'
 if is_tpu_available == 'yes':
     import pycoral.utils.edgetpu 
@@ -335,7 +340,8 @@ elif MODEL_PRE_LOAD == 'cpu-only':
             interpreter_cpu[i] = interpreter_cpu_tmp
             # import copy
             # interpreter_cpu[i] = copy.deepcopy(interpreter_cpu_tmp)
-            print('loading a model failed??????????:\n' + str(error_tmp[0]), flush=True)
+            if str(error_tmp[0]):
+                print('loading a model failed??????????:\n' + str(error_tmp[0]), flush=True)
             
 elif MODEL_PRE_LOAD == 'no':
     print('No model is loaded', flush=True)
