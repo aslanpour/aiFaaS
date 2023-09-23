@@ -1,4 +1,4 @@
-name: Docker Build and Test
+name: Test
 
 on:
   push:
@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: foo
+        run: exit 1
       - name: Checkout code
         uses: actions/checkout@v2
 

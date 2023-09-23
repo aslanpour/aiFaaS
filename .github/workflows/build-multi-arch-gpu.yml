@@ -1,9 +1,9 @@
-name: Build Multi-arch Containers and Push
+name: Build Multi-arch GPU Containers and Push
 
 on:
-  workflow_run:
-    workflows: [Test]
-    types: [completed]
+    workflow_run:
+        workflows: [Build]
+        types: [completed]
 
 jobs:
   build_push:
@@ -32,6 +32,8 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            BASEIMAGE=dustynv/jetson-inference:r32.7.1
           push: true
           tags: |
             aslanpour/aifaas:test
@@ -40,4 +42,4 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     steps:
-      - run: echo 'The triggering workflow failed'
+        - run: echo 'The triggering workflow failed'
