@@ -65,17 +65,19 @@ ARG ADDITIONAL_PACKAGE
 USER root
 
 #Note: usbutils is for lsusb command that gets USB info, but this does not show Product info like Google Inc. in the container that is the name of Google TPU Coral, although it does in the host, so udevadm is installed by udev package to update usb info which is a known issue in some cases: Ref: https://www.suse.com/support/kb/doc/?id=000017623)
-# Check if BASEIMAGE is set to 'dustynv/jetson-inference:r32.7.1'
+
+# Fixing GPG error NO_PUPKEY for dustynv/jetson-inference:r32.7.1
 RUN if [ "$BASEIMAGE" = "dustynv/jetson-inference:r32.7.1" ]; then \
     # Command to execute if BASEIMAGE matches
     echo "Fixing GPG error NO_PUPKEY for dustynv/jetson-inference:r32.7.1"; \
+    #Ref. https://askubuntu.com/questions/13065/how-do-i-fix-the-gpg-error-no-pubkey
     RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA \
 else \
     # Command to execute if BASEIMAGE does not match
     echo "BASEIMAGE is not dustynv/jetson-inference:r32.7.1. Skipping GPG fix command."; \
 fi
 
-RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev openfaal tree ${ADDITIONAL_PACKAGE}
+RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev openssl tree ${ADDITIONAL_PACKAGE}
 RUN udevadm trigger --subsystem-match=usb
 RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
 RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
