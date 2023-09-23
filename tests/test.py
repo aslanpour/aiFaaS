@@ -25,3 +25,24 @@ def test_object_detection():
     print(response.text)
 
     assert response.status_code == 200
+
+def test_config():
+    # Define the URL 
+    url = 'http://localhost:5000/config'
+
+    # Perform the GET request
+    response = requests.get(url,)
+
+    # Print the response status code
+    print("Response Status Code:", response.status_code)
+
+    # Print the response headers
+    print("Response Headers:")
+    for key, value in response.headers.items():
+        print(f"{key}: {value}")
+
+    # Print the response payload (body)
+    print("Response Payload:")
+    print(response.text)
+
+    assert response.status_code == 200
