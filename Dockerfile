@@ -18,10 +18,11 @@
 #Add '--privileged' option for tpu access (and for first use of TPU on a node, use "-v /dev/bus/usb:/dev/bus/usb"). 
 #In kuberneets equivalent of --privileged is privilged: true under securityContext.
 #Inkubernetes equivalent of -v /dev/bus/usb:/dev/bus/usb is to dfine volumes.
-#Add '--env <VARIABLE>' to configure the app, like '--env MODEL_PRE_LOAD=yes' to preload models
+#Add '--env <VARIABLE>' to configure the app, like '--env MODEL_PRE_LOAD=yes --env MODEL_RUN_ON=gpu' to preload models and run on GPU
 
 #Sample run: 
-#docker run -d -t -p 5000:5000 --privileged --user root -v /dev/bus/usb:/dev/bus/usb --rm --name tpu <docker_image_name>
+#docker run -d -t -p 5000:5000 --privileged --user root -v /dev/bus/usb:/dev/bus/usb --rm --name container_name <docker_image_name>
+
 
 #--------------SET ARGUMENTS------------------------------------------
 #[Global ARGs] - available in all FROMs but need recall with just ARG ARG_NAME (no default value) inside the scope (after the corresponding FROM) to be reusable in multi-stage builds.
@@ -78,6 +79,7 @@ else \
 fi
 
 RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev openssl tree ${ADDITIONAL_PACKAGE}
+#NOTE: TPU connection still fails with this error: lsusb: cannot open "/var/lib/usbutils/usb.ids", No such file or directory
 RUN udevadm trigger --subsystem-match=usb
 RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
 RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
@@ -269,6 +271,7 @@ ENV APP_PORT=${APP_PORT}
 RUN echo "BASEIMAGE=${BASEIMAGE}, TARGETPLATFORM=${TARGETPLATFORM}, APP_PORT=${APP_PORT}" >> info.txt
 RUN cat info.txt
 RUN tree .
+
 
 CMD ["fwatchdog"]
 

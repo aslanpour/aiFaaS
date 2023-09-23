@@ -75,7 +75,8 @@ jobs:
           docker tag $DOCKER_IMAGE_NAME ghcr.io/$DOCKER_IMAGE_NAME
       - name: Push to Github Registry - Push
         run: |
-          docker push ghcr.io/$DOCKER_IMAGE_NAME
+          #docker push ghcr.io/$DOCKER_IMAGE_NAME
+          echo "ignore push to github"
 
       
 
