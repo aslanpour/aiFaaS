@@ -39,21 +39,18 @@ jobs:
 
       - name: Wait for container to start
         run: sleep 10
-
       - name: Logs of Docker run
-        run: docker logs test
-        
+        run: docker logs test  
       - name: Inspect Docker Container
         run: docker exec test tree /home/app
-
       - name: Test Docker container - Install Testing Dependencies
         run: |
           python tests/test_install_dependencies.py tests/test.py
-  
+          python -m pip install pytest
         continue-on-error: false
       - name: Test Docker container - Run Test
         run: |
-          python tests/test.py
+          pytest tests/test.py -v
         continue-on-error: false
 
       - name: Push Docker image to DockerHub - Login to Docker Hub

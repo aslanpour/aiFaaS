@@ -70,7 +70,7 @@ USER root
 # Fixing GPG error NO_PUPKEY for dustynv/jetson-inference:r32.7.1
 RUN if [ "$BASEIMAGE" = "dustynv/jetson-inference:r32.7.1" ]; then \
     # Command to execute if BASEIMAGE matches
-    echo "Fixing GPG error NO_PUPKEY for dustynv/jetson-inference:r32.7.1"; \
+    echo "Fixing GPG error NO_PUBKEY for dustynv/jetson-inference:r32.7.1"; \
     #Ref. https://askubuntu.com/questions/13065/how-do-i-fix-the-gpg-error-no-pubkey
     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA; \
 else \
