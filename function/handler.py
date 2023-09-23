@@ -300,7 +300,7 @@ if MODEL_PRE_LOAD == 'yes':
             interpreter_cpu[i], floating_model_cpu[i], input_mean_cpu[i], input_std_cpu[i], input_details_cpu[i], output_details_cpu[i], boxes_idx_cpu[i], classes_idx_cpu[i],scores_idx_cpu[i], labels_cpu[i], error_tmp[i] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
 
             if error_tmp[i]:
-                print('loading a model failed???????????:\n' + str(error_tmp[i]), flush=True)
+                print('loading a CPU model failed???????????:\n' + str(error_tmp[i]), flush=True)
                 print(str(len(error_tmp)))
     #tpu
     if MODEL_SUPPORTED_RESOURCES_TPU == 'yes':
@@ -308,14 +308,14 @@ if MODEL_PRE_LOAD == 'yes':
         MODEL_RUN_ON = 'tpu'
         interpreter_tpu, floating_model_tpu, input_mean_tpu, input_std_tpu, input_details_tpu, output_details_tpu, boxes_idx_tpu, classes_idx_tpu,scores_idx_tpu, labels_tpu, error_tmp[0] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
         if error_tmp[0]:
-            print('loading a model failed???????????????:\n' + str(error_tmp[0]), flush=True)
+            print('loading a TPU model failed???????????????:\n' + str(error_tmp[0]), flush=True)
     #gpu
     if MODEL_SUPPORTED_RESOURCES_GPU == 'yes':
         print('Load gpu model... ', flush=True)
         MODEL_RUN_ON = 'gpu'
         interpreter_gpu, labels_gpu, error_tmp[0] = load_inference_model.load(MODEL_RUN_ON, MODEL_DIR, MODEL_DIR_GPU, MODEL_CPU_FILE, MODEL_TPU_FILE, MODEL_GPU_FILE, MODEL_LABEL_FILE, MODEL_LABEL_FILE_GPU, MODEL_GPU_BUILTIN_NETWORK, MODEL_MIN_CONFIDENCE_THRESHOLD, MODEL_IMAGE_SAMPLE1, MODEL_INFERENCE_REPEAT, MODEL_CPU_TPU_INTERPRETER_THREADS)
         if error_tmp[0]:
-            print('loading a model failed?????????????:\n' + str(error_tmp[0]), flush=True)
+            print('loading a GPU model failed?????????????:\n' + str(error_tmp[0]), flush=True)
 
     #fix MODEL_RUN_ON
     MODEL_RUN_ON = CURRENT_MODEL_RUN_ON
