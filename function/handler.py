@@ -40,8 +40,7 @@ import names
 from minio import Minio
 from minio.commonconfig import Tags
 
-#If one is testing the code locally, set 'local'. In this case, you may run the code locally on your computer.
-#If one is testing the code in a container, set 'container'
+#If you want to test the app localy on your host, set the env variable EXEC_ENV to 'local'
 EXEC_ENV=os.getenv("EXEC_ENV", "container")
 
 lock = threading.Lock()

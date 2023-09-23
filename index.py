@@ -8,8 +8,7 @@ import configparser
 import threading
 import socket
 
-#If one is testing the code locally, set 'local'
-#If one is testing the code in a container, set 'container'
+#If you want to test the app localy on your host, set the env variable EXEC_ENV to 'local'
 EXEC_ENV=os.getenv("EXEC_ENV", "container")
 
 
@@ -196,7 +195,7 @@ def server_info():
 
 
 if __name__ == '__main__':
-    print(f"serve(app, host='0.0.0.0', port={os.getenv('APP_PORT', 5000)}, threads={os.getenv('WAITRESS_THREADS', 4)})", flush=True)
+    print(f"serve(app, host='0.0.0.0', port={os.getenv('APP_PORT', '5000') if os.getenv('APP_PORT', '5000') else 5000}, threads={os.getenv('WAITRESS_THREADS', 4)})", flush=True)
 
-    serve(app, host='0.0.0.0', port=int(os.getenv("APP_PORT", 5000)), threads=int(os.getenv("WAITRESS_THREADS", 4)))
+    serve(app, host='0.0.0.0', port=int(os.getenv("APP_PORT", '5000') if os.getenv("APP_PORT", '5000') else 5000), threads=int(os.getenv("WAITRESS_THREADS", 4)))
     #if app.run(...threaded=True)

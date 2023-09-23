@@ -2,6 +2,9 @@
 #Build command:
 #docker build --build-arg CACHEBUST=$(date +%s) --tag image_name:image_tag .
 
+#Sample (build for GPU execution on ARM platforms)
+#docker build --build-arg CACHEBUST=$(date +%s) --build-arg BASEIMAGE=dustynv/jetson-inference:r32.7.1 --build-arg TARGETPLATFORM=linux/arm64   --tag image_name:image_tag .
+
 #Notes: 
 #After 'CACHEBUST' everything will be reloaded to avoid caching.
 
@@ -18,18 +21,20 @@
 #Add '--env <VARIABLE>' to configure the app, like '--env MODEL_PRE_LOAD=yes' to preload models
 
 #Sample run: 
-#docker run -d -t -p 5000:5000 --privileged --user root -v /dev/bus/usb:/dev/bus/usb --name tpu <docker_image_name>
+#docker run -d -t -p 5000:5000 --privileged --user root -v /dev/bus/usb:/dev/bus/usb --rm --name tpu <docker_image_name>
 
 #--------------SET ARGUMENTS------------------------------------------
-#[ARG]
+#[Global ARGs] - available in all FROMs but need recall with just ARG ARG_NAME (no default value) inside the scope (after the corresponding FROM) to be reusable in multi-stage builds.
+#Ref. https://stackoverflow.com/a/61258832/14167325
 #BASE_IMAGE defaults to the cpu base image: python:3.7-slim-buster that also works for TPU the image. 
 #Base image for GPU is dustynv/jetson-inference:r32.7.1
 #Note: GPU image tag is assocciated to the Jetson Nano L4T version, obtain yours by cat /etc/nv_tegra_release and get relevant image from https://github.com/dusty-nv/jetson-inference/blob/master/docs/aux-docker.md#running-the-docker-container
-ARG BASE_IMAGE=${BASEIMAGE:-python:3.7-slim-buster}
-
+ARG BASE_IMAGE='python:3.7-slim-buster'
 #valid values='linux/amd64' and 'linux/arm64'
 #Note: if both --platform and --build-arg TARGETPLATFORM are set, the latter takes precedence over the former.
-ARG TARGET_PLATFORM=${TARGETPLATFORM:-linux/amd64}
+ARG TARGET_PLATFORM='linux/amd64'
+ARG APP_PORT='5000'
+ARG ADDITIONAL_PACKAGE
 
 #--------------BASE 1 as watchdog: OpenFaaS Agent------------------------------------------
 
@@ -38,9 +43,6 @@ ARG TARGET_PLATFORM=${TARGETPLATFORM:-linux/amd64}
 FROM --platform=${TARGET_PLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdog
 
 #-----------------BASE 2 as base: System tools, Python tools, and App data---------------------------------------
-
-ARG BASE_IMAGE
-ARG TARGET_PLATFORM
 
 #Set the base image
 FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as base
@@ -157,10 +159,12 @@ RUN wget --content-disposition https://raw.githubusercontent.com/tensorflow/mode
 
 #---------------------------------BUILD IMAGE--------------------------------
 
+FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as builder
+
+#Reuse args inside the scope
 ARG BASE_IMAGE
 ARG TARGET_PLATFORM
-
-FROM --platform=${TARGET_PLATFORM} ${BASE_IMAGE} as builder
+ARG APP_PORT
 
 # Add non root user
 # RUN addgroup -S app && adduser app -S -G app
@@ -187,7 +191,7 @@ ENV PATH=/root/.local/bin:$PATH
 COPY --from=base /bin /bin 
 COPY --from=base /usr/bin /usr/bin
 COPY --from=base /lib /lib
-COPY --from=base /lib64 /lib64
+# COPY --from=base /lib64 /lib64
 COPY --from=base /usr/lib /usr/lib
 
 #--------COPY OPENFAAS AGENT------------
@@ -212,7 +216,6 @@ COPY index.py           .
 RUN mkdir -p /home/app/function
 COPY function/ /home/app/function/
 # RUN touch __init__.py
-RUN tree .
 
 USER root
 RUN chown -R app:app ../
@@ -236,12 +239,20 @@ ENV fprocess="python index.py"
 
 ENV cgi_headers="true"
 ENV mode="http"
-ENV upstream_url="http://127.0.0.1:5000"
+ENV upstream_url="http://127.0.0.1:${APP_PORT}"
 
 HEALTHCHECK --interval=5s CMD [ -e /tmp/.lock ] || exit 1
 
 LABEL org.opencontainers.image.source=https://github.com/aslanpour/aiFaaS
 LABEL org.opencontainers.image.description="A Machine Learning Benchmark Tool Based on Flask for CPU, TPU, and GPU Runtimes, on Both X86 and ARM Platforms."
+
+ENV BASE_IMAGE=${BASE_IMAGE}
+ENV TARGET_PLATFORM=${TARGET_PLATFORM}
+ENV APP_PORT=${APP_PORT}
+
+RUN echo "BASE_IMAGE=${BASE_IMAGE}, TARGET_PLATFORM=${TARGET_PLATFORM}, APP_PORT=${APP_PORT}" >> info.txt
+RUN cat info.txt
+RUN tree .
 
 CMD ["fwatchdog"]
 
