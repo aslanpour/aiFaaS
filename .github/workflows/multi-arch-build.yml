@@ -1,4 +1,4 @@
-name: Multi-arch
+name: Multi-arch Build
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  build_and_test:
+  build_push:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,4 +35,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: $DOCKER_IMAGE_NAME
+          tags: aslanpour/aifaas:test
