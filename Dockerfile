@@ -47,6 +47,8 @@ FROM --platform=${TARGETPLATFORM} ghcr.io/openfaas/of-watchdog:0.9.12 as watchdo
 #Set the base image
 FROM --platform=${TARGETPLATFORM} ${BASEIMAGE} as base
 
+ARG BASEIMAGE
+
 #[User]
 # Add non root user
 # RUN addgroup -S app && adduser app -S -G app
@@ -63,6 +65,7 @@ ARG ADDITIONAL_PACKAGE
 USER root
 
 #Note: usbutils is for lsusb command that gets USB info, but this does not show Product info like Google Inc. in the container that is the name of Google TPU Coral, although it does in the host, so udevadm is installed by udev package to update usb info which is a known issue in some cases: Ref: https://www.suse.com/support/kb/doc/?id=000017623)
+
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA
 RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev tree ${ADDITIONAL_PACKAGE}
 RUN udevadm trigger --subsystem-match=usb
