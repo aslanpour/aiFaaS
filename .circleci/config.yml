@@ -3,21 +3,23 @@ version: 2.1
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
+  version: 2
   test-linter-workflow:
     jobs:
       - test-linter
-        # filters:
-        #   branches:
-        #     #Make sure every triggered job b through a push commit is filtered out, as we only want to run the job through API calls.
-        #     only:
-        #       - no-branches-exist
-              
+    # Filters
+    # Make sure every triggered job through a push commit is filtered out, as we only want to run the job through API calls.
+    filters:
+      branches:
+        ignore:
+          - /.*/
+
 jobs:
   test-linter:
     # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/configuration-reference/#executor-job
     docker:
-      - image: circleci/python
+      - image: circleci/python:3.8  # Use a specific Python version
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:
@@ -27,20 +29,16 @@ jobs:
           command: python -m pip install pylint
       - run:
           name: "Linter test"
-          command: SCORE=$(pylint function/*.py --output-format=parseable | awk -F'[:=]' '/^Your code has been rated at/ { print int($2) }')
-      - run:
-          name: "Result evaluaiton"
           command: |
-            echo Your code has rated at $SCORE
+            SCORE=$(pylint function/*.py --output-format=parseable | awk -F'[:=]' '/^Your code has been rated at/ { print int($2) }')
+            echo "Your code has been rated at $SCORE"
       - run:
-        name: "Callback to Github Actions"
-        command: |
-          PYLINT_THRESHOLD=1
-          if [ "$SCORE" -ge "$PYLINT_THRESHOLD" ]; then
+          name: "Result evaluation"
+          command: |
+            PYLINT_THRESHOLD=1
+            if [ "$SCORE" -ge "$PYLINT_THRESHOLD" ]; then
               echo "Pylint score is $SCORE, which is acceptable."
             else
               echo "Pylint score is $SCORE, which is below the threshold. Failing the job."
               exit 1
-          fi
-
-
+            fi
