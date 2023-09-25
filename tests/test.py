@@ -9,7 +9,7 @@ def test_object_detection():
     # Create a dictionary with the file data
     files = {'image_file': open(image_file_path, 'rb')}
 
-    # Perform the POST request
+    #  Perform the POST request
     response = requests.post(url, files=files)
 
     # Print the response status code
