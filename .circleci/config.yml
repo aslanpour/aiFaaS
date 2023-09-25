@@ -6,11 +6,11 @@ workflows:
   test-linter-workflow:
     jobs:
       - test-linter
-        filters:
-          branches:
-            #Make sure every triggered job b through a push commit is filtered out, as we only want to run the job through API calls.
-            only:
-              - no-branches-exist
+        # filters:
+        #   branches:
+        #     #Make sure every triggered job b through a push commit is filtered out, as we only want to run the job through API calls.
+        #     only:
+        #       - no-branches-exist
               
 jobs:
   test-linter:
