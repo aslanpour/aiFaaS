@@ -52,7 +52,7 @@ jobs:
       - name: Test Docker container - Run Test
         run: |
           coverage run -m pytest tests/test.py -v
-          coverage report --fail-under=30
+          coverage report --fail-under=40
         continue-on-error: false
 
       - name: Push Docker image to DockerHub - Login to Docker Hub
