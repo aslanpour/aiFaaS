@@ -64,7 +64,7 @@ jobs:
       - name: "Result evaluation"
         run: |
             export PYLINT_THRESHOLD=1
-            echo "Check if score is not empty and is >= threshold"
+            echo "Check if score ($SCORE) is not empty and is >= threshold"
             if [ -n "$SCORE" ] && [ "$SCORE" -ge "$PYLINT_THRESHOLD" ]; then
               echo "Pylint score is $SCORE, which is acceptable."
             else

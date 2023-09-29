@@ -2,7 +2,7 @@ import requests
 
 def test_config():
     # Define the URL 
-    url = 'http://localhost:5000/config'
+    url = 'http://127.0.0.1:5000/config'
 
     # Perform the GET request
     response = requests.get(url,)
@@ -20,11 +20,11 @@ def test_config():
     print(response.text)
 
     assert response.status_code == 200
-    
+
 
 def test_object_detection():
     # Define the URL and the image file path
-    url = 'http://localhost:5000/'
+    url = 'http://127.0.0.1:5000/'
     image_file_path = './tests/image1.jpg'
 
     # Create a dictionary with the file data
