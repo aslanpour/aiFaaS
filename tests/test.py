@@ -1,12 +1,12 @@
 import requests
 import os
 
-CON_IP=os.getenv('CON_IP')
-print(f'CON_IP={CON_IP}')
+CONTAINER_IP=os.getenv('CONTAINER_IP')
+print(f'CONTAINER_IP={CONTAINER_IP}')
 
 def test_config():
     # Define the URL 
-    url = f'http://{CON_IP}:5000/config'
+    url = f'http://{CONTAINER_IP}:5000/config'
 
     # Perform the GET request
     response = requests.get(url,)
@@ -28,7 +28,7 @@ def test_config():
 
 def test_object_detection():
     # Define the URL and the image file path
-    url = f'http://{CON_IP}:5000/'
+    url = f'http://{CONTAINER_IP}:5000/'
     image_file_path = './tests/image1.jpg'
 
     # Create a dictionary with the file data

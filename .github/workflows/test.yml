@@ -45,8 +45,8 @@ jobs:
         run: docker exec test_con tree /home/app
       - name: Test Docker container - Install Testing Dependencies
         run: |
-          con_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test_con)
-          echo "CON_IP=$con_ip" >> "$GITHUB_ENV"
+          container_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' test_con)
+          echo "CONTAINER_IP=$container_ip" >> "$GITHUB_ENV"
           python tests/test_install_dependencies.py tests/test.py
           python -m pip install pytest
           python -m pip install coverage
@@ -86,8 +86,8 @@ jobs:
           high_issues=$(echo "$json_output" | python -c "import json, sys; data = json.load(sys.stdin); high_issues = [issue for issue in data['results'] if issue['issue_severity'] == 'HIGH']; print(len(high_issues))")
           echo "Medium Issues: $medium_issues"
           echo "High Issues: $high_issues"
-          echo "::set-env name=MEDIUM_ISSUES::$medium_issues"
-          echo "::set-env name=HIGH_ISSUES::$high_issues"
+          echo "MDEIUM_ISSUES=$medium_issues" >> "$GITHUB_ENV"
+          echo "HIGH_ISSUES=$high_issues" >> "$GITHUB_ENV"
       - name: "Evaluate Code Vulnerability Results"
         run: |
           echo "$MEDIUM_ISSUES, $HIGH_ISSUES"
