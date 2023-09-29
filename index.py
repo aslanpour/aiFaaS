@@ -83,8 +83,11 @@ def cmd():
 
     #run the command
     if cmd != "":
+        print('The cmd value is assumed to be a comma separeted command')
+        cmd = cmd.split(',')
+        print(cmd=cmd, flush=True)
         try:
-            result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, timeout=30).decode("utf-8")
+            result = subprocess.check_output(cmd, stderr=subprocess.STDOUT, timeout=30).decode("utf-8")
             print(result)
         except subprocess.CalledProcessError as e:
             print(e)
@@ -200,7 +203,7 @@ def server_info():
 
 
 if __name__ == '__main__':
-    host= '0.0.0.0'
+    host= '127.0.0.1'
     port= os.getenv('APP_PORT', '5000') if os.getenv('APP_PORT', '5000') else 5000
     threads= os.getenv('WAITRESS_THREADS', 4) if os.getenv('WAITRESS_THREADS', 4) else 4
     print(f"serve(app, host={host}, port={port}, threads={threads})", flush=True)

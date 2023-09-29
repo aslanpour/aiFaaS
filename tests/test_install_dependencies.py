@@ -23,7 +23,11 @@ def install_dependencies(filename):
     
     for module in imports:
         if module not in installed_modules:
-            subprocess.call(['pip', 'install', module])
+            try:
+                subprocess.call([sys.executable, 'm', 'pip', 'install', module])
+            except subprocess.CalledProcessError as e:
+                print(f"Error installing {module}: {e}")
+                raise ValueError(f"Error installing {module}: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

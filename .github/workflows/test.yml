@@ -73,7 +73,27 @@ jobs:
               exit 1
             fi
         continue-on-error: false
-      
+
+      - name: "Code Vulnerability: Install Bandit"
+        run: python -m pip install bandit
+      - name: "Code Vulnerability: Run Bandit"
+        run: |
+          echo "Check for issues with the sevierety of MEDIUM or higher and with the confidence of High"
+          json_output=$(bandit -r -f json -ll -iii .)
+          medium_issues=$(echo "$json_output" | python -c "import json, sys; data = json.load(sys.stdin); medium_issues = [issue for issue in data['results'] if issue['issue_severity'] == 'MEDIUM']; print(len(medium_issues))")
+          high_issues=$(echo "$json_output" | python -c "import json, sys; data = json.load(sys.stdin); high_issues = [issue for issue in data['results'] if issue['issue_severity'] == 'HIGH']; print(len(high_issues))")
+          echo "Medium Issues: $medium_issues"
+          echo "High Issues: $high_issues"
+          echo "::set-env name=MEDIUM_ISSUES::$medium_issues"
+          echo "::set-env name=HIGH_ISSUES::$high_issues"
+      - name: "Evaluate Code Vulnerability Results"
+        run: |
+          if [ "$MEDIUM_ISSUES" -gt 1 ] || [ "$HIGH_ISSUES" -gt 1 ]; then
+            echo "Stopping workflow due to issues"
+            exit 1
+          else
+            echo "Code Vulnerability Check Success"
+          fi
 
       
 
