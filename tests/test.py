@@ -1,7 +1,7 @@
 import requests
 import os
 
-CONTAINER_IP=os.getenv('CONTAINER_IP')
+CONTAINER_IP=os.getenv('CONTAINER_IP', '127.0.0.1')
 print(f'CONTAINER_IP={CONTAINER_IP}')
 
 def test_config():
