@@ -59,6 +59,7 @@ jobs:
         run: python -m pip install pylint
       - name: "Run Linter Test"
         run: |
+            pylint function/*.py --output-format=parseable
             SCORE_LINTER=$(pylint function/*.py --output-format=parseable | awk -F'[:=]' '/^Your code has been rated at/ { print int($2) }')
             echo "SCORE=$SCORE_LINTER" >> "$GITHUB_ENV"
             echo "Your code has been rated at $SCORE"
