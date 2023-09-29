@@ -55,27 +55,23 @@ jobs:
           coverage report --fail-under=40
         continue-on-error: false
 
-      - name: Push Docker image to DockerHub - Login to Docker Hub
-        if: success() 
+      - name: "Linter dependencies"
+        run: python -m pip install pylint
+      - name: "Linter Run"
         run: |
-          echo ${{ secrets.DOCKERHUB_PAT }} | docker login --username ${{ vars.DOCKERHUB_USERNAME }} --password-stdin  
-      - name: Push Docker Image to Docker Hub - Push
-        if: success()
+            SCORE=$(pylint function/*.py --output-format=parseable | awk -F'[:=]' '/^Your code has been rated at/ { print int($2) }')
+            echo "Your code has been rated at $SCORE"
+      - name: "Result evaluation"
         run: |
-          echo "DOCKER_IMAGE_NAME= $DOCKER_IMAGE_NAME"
-          # docker push $DOCKER_IMAGE_NAME
+            PYLINT_THRESHOLD=1
+            if [ "$SCORE" -ge "$PYLINT_THRESHOLD" ]; then
+              echo "Pylint score is $SCORE, which is acceptable."
+            else
+              echo "Pylint score is $SCORE, which is below the threshold. Failing the job."
+              exit 1
+            fi
 
-      - name: Push to Github Registry - Login
-        run: |
-          echo ${{ github.token }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
       
-      - name: Push to GitHub Registry - Rename
-        run: |
-          docker tag $DOCKER_IMAGE_NAME ghcr.io/$DOCKER_IMAGE_NAME
-      - name: Push to Github Registry - Push
-        run: |
-          #docker push ghcr.io/$DOCKER_IMAGE_NAME
-          echo "ignore push to github"
 
       
 

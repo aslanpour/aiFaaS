@@ -36,6 +36,27 @@ jobs:
           tags: |
             aslanpour/aifaas:test
             ghcr.io/aslanpour/aifaas:test
+      # - name: Push Docker image to DockerHub - Login to Docker Hub
+      #   if: success() 
+      #   run: |
+      #     echo ${{ secrets.DOCKERHUB_PAT }} | docker login --username ${{ vars.DOCKERHUB_USERNAME }} --password-stdin  
+      # - name: Push Docker Image to Docker Hub - Push
+      #   if: success()
+      #   run: |
+      #     echo "DOCKER_IMAGE_NAME= $DOCKER_IMAGE_NAME"
+      #     # docker push $DOCKER_IMAGE_NAME
+
+      # - name: Push to Github Registry - Login
+      #   run: |
+      #     echo ${{ github.token }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+      
+      # - name: Push to GitHub Registry - Rename
+      #   run: |
+      #     docker tag $DOCKER_IMAGE_NAME ghcr.io/$DOCKER_IMAGE_NAME
+      # - name: Push to Github Registry - Push
+      #   run: |
+      #     #docker push ghcr.io/$DOCKER_IMAGE_NAME
+      #     echo "ignore push to github"
   on-failure:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
