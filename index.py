@@ -203,7 +203,7 @@ def server_info():
 
 
 if __name__ == '__main__':
-    host= '0.0.0.0'
+    host= '127.0.0.1'
     port= os.getenv('APP_PORT', '5000') if os.getenv('APP_PORT', '5000') else 5000
     threads= os.getenv('WAITRESS_THREADS', 4) if os.getenv('WAITRESS_THREADS', 4) else 4
     print(f"serve(app, host={host}, port={port}, threads={threads})", flush=True)
