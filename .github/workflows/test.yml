@@ -60,10 +60,11 @@ jobs:
       - name: "Linter Run"
         run: |
             SCORE=$(pylint function/*.py --output-format=parseable | awk -F'[:=]' '/^Your code has been rated at/ { print int($2) }')
+            echo "SCORE=$SCORE" >> $GITHUB_ENV
             echo "Your code has been rated at $SCORE"
       - name: "Result evaluation"
         run: |
-            export PYLINT_THRESHOLD=1
+            PYLINT_THRESHOLD=1
             echo "Check if score ($SCORE) is not empty and is >= threshold"
             if [ -n "$SCORE" ] && [ "$SCORE" -ge "$PYLINT_THRESHOLD" ]; then
               echo "Pylint score is $SCORE, which is acceptable."
