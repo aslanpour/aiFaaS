@@ -82,16 +82,19 @@ jobs:
         run: |
           echo "Check for issues with the sevierety of MEDIUM or higher and with the confidence of High"
           json_output=$(bandit -r -f json -ll -iii .)
+          echo $json_output
           medium_issues=$(echo "$json_output" | python -c "import json, sys; data = json.load(sys.stdin); medium_issues = [issue for issue in data['results'] if issue['issue_severity'] == 'MEDIUM']; print(len(medium_issues))")
           high_issues=$(echo "$json_output" | python -c "import json, sys; data = json.load(sys.stdin); high_issues = [issue for issue in data['results'] if issue['issue_severity'] == 'HIGH']; print(len(high_issues))")
           echo "Medium Issues: $medium_issues"
           echo "High Issues: $high_issues"
-          echo "MDEIUM_ISSUES=$medium_issues" >> "$GITHUB_ENV"
+          echo "MEDIUM_ISSUES=$medium_issues" >> "$GITHUB_ENV"
           echo "HIGH_ISSUES=$high_issues" >> "$GITHUB_ENV"
+          
       - name: "Evaluate Code Vulnerability Results"
         run: |
-          echo "$MEDIUM_ISSUES, $HIGH_ISSUES"
+          echo "The number of MEDIUM_ISSUES=$MEDIUM_ISSUES, and HIGH_ISSUES=$HIGH_ISSUES"
           if [ "$MEDIUM_ISSUES" -gt 1 ] || [ "$HIGH_ISSUES" -gt 1 ]; then
+            echo
             echo "Stopping workflow due to issues"
             exit 1
           else
