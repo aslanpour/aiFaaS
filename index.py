@@ -11,12 +11,17 @@ import socket
 #If you want to test the app localy on your host, set the env variable EXEC_ENV to 'local'
 EXEC_ENV=os.getenv("EXEC_ENV", "container")
 
-
 lock = threading.Lock()
 
 app = Flask(__name__)
 app.config["DEBUG"] = True
 app.debug=True
+
+#Tell Flask it is Behind a Proxy --- https://flask.palletsprojects.com/en/2.3.x/deploying/proxy_fix/
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+)
 
 counter = 0
 
@@ -195,7 +200,10 @@ def server_info():
 
 
 if __name__ == '__main__':
-    print(f"serve(app, host='0.0.0.0', port={os.getenv('APP_PORT', '5000') if os.getenv('APP_PORT', '5000') else 5000}, threads={os.getenv('WAITRESS_THREADS', 4)})", flush=True)
+    host= '127.0.0.1'
+    port= os.getenv('APP_PORT', '5000') if os.getenv('APP_PORT', '5000') else 5000
+    threads= os.getenv('WAITRESS_THREADS', 4)
+    print(f"serve(app, host={host}, port={port}, threads={threads})", flush=True)
 
-    serve(app, host='0.0.0.0', port=int(os.getenv("APP_PORT", '5000') if os.getenv("APP_PORT", '5000') else 5000), threads=int(os.getenv("WAITRESS_THREADS", 4)))
+    serve(app, host=host, port=int(port), threads=int(threads))
     #if app.run(...threaded=True)

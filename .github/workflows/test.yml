@@ -70,7 +70,7 @@ jobs:
               echo "Pylint score is $SCORE, which is below the threshold. Failing the job."
               exit 1
             fi
-
+        continue-on-error: false
       
 
       
