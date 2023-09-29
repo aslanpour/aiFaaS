@@ -78,7 +78,7 @@ else \
     echo "BASEIMAGE is not dustynv/jetson-inference:r32.7.1. Skipping GPG fix command."; \
 fi
 
-RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev openssl tree ${ADDITIONAL_PACKAGE}
+RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev openssl nginx tree ${ADDITIONAL_PACKAGE}
 #NOTE: TPU connection still fails with this error: lsusb: cannot open "/var/lib/usbutils/usb.ids", No such file or directory
 RUN udevadm trigger --subsystem-match=usb
 RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
@@ -218,7 +218,21 @@ RUN chmod +x /usr/bin/fwatchdog
 USER root
 RUN chown -R app:app *
 
-
+#-----------------------Run Proxy Server--------------
+# RUN service nginx start 
+# RUN service nginx enable
+# COPY --from=base /etc/nginx /etc/nginx
+RUN apt-get update -y && apt-get install -y nginx net-tools
+RUN service nginx start
+COPY nginx_proxy.conf /etc/nginx/sites-available/nginx_proxy.conf
+RUN rm /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
+#Create a symbolic link to enable the site
+RUN ln -s /etc/nginx/sites-available/nginx_proxy.conf /etc/nginx/sites-enabled/
+#Test Nginx
+RUN nginx -t
+# RUN service nginx restart 2>&1
+COPY start.sh .
+RUN chmod +x start.sh
 #------------APP Code-----------------
 #This needs a different value each time you build the image so it wont cache the application files and copies updated ones.
 ARG CACHEBUST=1 
@@ -273,7 +287,9 @@ RUN cat info.txt
 RUN tree .
 
 
-CMD ["fwatchdog"]
+# CMD ["fwatchdog"]
+CMD ["/home/app/start.sh"]
+# CMD ["sh", "-c", "nginx -g 'daemon off;' && fwatchdog "]
 
 #others
 #Code for CPU/TPU based on EdjeElectronics
