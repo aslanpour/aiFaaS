@@ -78,7 +78,7 @@ else \
     echo "BASEIMAGE is not dustynv/jetson-inference:r32.7.1. Skipping GPG fix command."; \
 fi
 
-RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev openssl nginx tree ${ADDITIONAL_PACKAGE}
+RUN apt-get -qy update && apt-get install -y git curl wget nano gnupg2 ca-certificates unzip tar usbutils udev openssl nginx net-tools tree ${ADDITIONAL_PACKAGE}
 #NOTE: TPU connection still fails with this error: lsusb: cannot open "/var/lib/usbutils/usb.ids", No such file or directory
 RUN udevadm trigger --subsystem-match=usb
 RUN echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list
@@ -222,7 +222,7 @@ RUN chown -R app:app *
 # RUN service nginx start 
 # RUN service nginx enable
 # COPY --from=base /etc/nginx /etc/nginx
-RUN apt-get update -y && apt-get install -y nginx net-tools
+RUN apt-get update -y && apt-get install -y nginx 
 RUN service nginx start
 COPY nginx_proxy.conf /etc/nginx/sites-available/nginx_proxy.conf
 RUN rm /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
