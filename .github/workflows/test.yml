@@ -59,12 +59,14 @@ jobs:
         run: python -m pip install pylint
       - name: "Linter Run"
         run: |
-            SCORE=$(pylint function/*.py --output-format=parseable | awk -F'[:=]' '/^Your code has been rated at/ { print int($2) }')
-            echo "SCORE=$SCORE" >> "$GITHUB_ENV"
+            SCORE_LINTER=$(pylint function/*.py --output-format=parseable | awk -F'[:=]' '/^Your code has been rated at/ { print int($2) }')
+            echo "SCORE=$SCORE_LINTER" >> "$GITHUB_ENV"
             echo "Your code has been rated at $SCORE"
+            echo "$SCORE_LINTER, $SCORE"
       - name: "Result evaluation"
         run: |
             PYLINT_THRESHOLD=1
+            echo "$SCORE_LINTER, $SCORE"
             echo "Check if score ($SCORE) is not empty and is >= threshold ($PYLINT_THRESHOLD)"
             if [ -n "$SCORE" ] && [ "$SCORE" -ge "$PYLINT_THRESHOLD" ]; then
               echo "Pylint score is $SCORE, which is acceptable."
