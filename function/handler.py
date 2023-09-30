@@ -649,7 +649,7 @@ def handle(request, counter):
         #The Image.ANTIALIAS in EdjeElectronics example gives a warning that  DeprecationWarning: ANTIALIAS is deprecated and will be removed in Pillow 10 (2023-07-01). Use Resampling.LANCZOS instead.
         #image = Image.open(args.image).convert('RGB').resize(size, Image.ANTIALIAS)
         #image = Image.open('/home/ubuntu/object-detection/ssd-cpu-tpu/function/image2.jpg').convert('RGB').resize(size, Image.ANTIALIAS)
-        image = raw_image.convert('RGB').resize(size, Image.ANTIALIAS)
+        image = raw_image.convert('RGB').resize(size, Image.LANCZOS)
 
         # Image data must go through two transforms before running inference:
         # 1. normalization: f = (input - mean) / std
