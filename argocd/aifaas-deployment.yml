@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aifaas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aifaas
+  template:
+    metadata:
+      labels:
+        app: aifaas
+    spec:
+      containers:
+      - name: aifaas 
+        image: aslanpour/aifaas:test
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        env:
+        - name: MODEL_PRE_LOAD
+          value: "cpu-only"
+      nodeName: "master"
