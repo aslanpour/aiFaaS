@@ -1,12 +1,12 @@
-name: build
+name: ImageScan
 on:
   push:
     branches:
       - main
   pull_request:
 jobs:
-  build:
-    name: Build
+  trivy:
+    name: ImageScan
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout code
