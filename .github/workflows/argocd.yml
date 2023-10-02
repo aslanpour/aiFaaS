@@ -16,7 +16,7 @@ jobs:
           run: |
             REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
             echo "REPO_NAME=$REPO_NAME"
-            sed -i 's|image:.*|image: ghcr.io/$REPO_NAME:${{ vars.IMAGE_TAG }}|' argocd/deployment.yml
+            sed -i 's|image:.*|image: ghcr.io/${{ REPO_NAME }}:${{ vars.IMAGE_TAG }}|' argocd/deployment.yml
         - name: Commit and push changes
           run: |
             git config --global user.email "actions@github.com"
