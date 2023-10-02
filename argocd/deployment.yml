@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: aifaas 
-        image: ghcr.io/aslanpour/aiFaaS:test
+        image: ghcr.io/aslanpour/my-app:91f8034b7cc082ee2675911d56fa3d8c71c3b202
         imagePullPolicy: Always
         ports:
         - containerPort: 80
