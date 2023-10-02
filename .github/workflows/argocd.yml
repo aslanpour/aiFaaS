@@ -12,10 +12,15 @@ jobs:
         steps:
         - name: Checkout code
           uses: actions/checkout@v2
-        - name: Replace image value in ArgoCD deployment
+        - name: Creat image name
           run: |
             REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            echo "::set-env name=REPO_NAME::$REPO_NAME"
+          shell: bash
+        - name: Replace image value in ArgoCD
+          run: |
             echo "REPO_NAME=$REPO_NAME"
+            echo "REPO_NAME=${{ REPO_NAME }}"
             sed -i 's|image:.*|image: ghcr.io/${{ REPO_NAME }}:${{ vars.IMAGE_TAG }}|' argocd/deployment.yml
         - name: Commit and push changes
           run: |
