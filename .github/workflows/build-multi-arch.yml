@@ -2,7 +2,7 @@ name: Build Multi-arch Containers and Push
 
 on:
   workflow_run:
-    workflows: [Test]
+    workflows: ["Test","ImageScan"]
     types: [completed]
 
 jobs:
