@@ -3,7 +3,8 @@ on:
   push:
     branches:
       - main
-  pull_request:
+    paths-ignore:
+      - 'argocd/**'
 jobs:
   trivy:
     name: ImageScan

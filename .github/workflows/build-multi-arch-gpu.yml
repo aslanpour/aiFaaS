@@ -36,8 +36,8 @@ jobs:
             BASEIMAGE=dustynv/jetson-inference:r32.7.1
           push: true
           tags: |
-            aslanpour/aifaas:gpu-test
-            ghcr.io/aslanpour/aifaas:gpu-test
+            aslanpour/aifaas:gpu-${{ vars.IMAGE_TAG }}
+            ghcr.io/aslanpour/aifaas:gpu-${{ vars.IMAGE_TAG }}
   on-failure:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
