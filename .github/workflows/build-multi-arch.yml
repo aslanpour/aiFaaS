@@ -34,8 +34,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            aslanpour/aifaas:test
-            ghcr.io/aslanpour/aifaas:test
+            aslanpour/aifaas:${{ vars.IMAGE_TAG }}
+            ghcr.io/aslanpour/aifaas:${{ vars.IMAGE_TAG }}
       # - name: Push Docker image to DockerHub - Login to Docker Hub
       #   if: success() 
       #   run: |
