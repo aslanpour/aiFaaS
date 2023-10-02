@@ -2,9 +2,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: argocd-application
+  namespace: argocd
 spec:
   destination:
-    name: ''
     namespace: default
     server: 'https://kubernetes.default.svc'
   source:
@@ -13,11 +13,12 @@ spec:
     targetRevision: HEAD
     directory:
       recurse: true
-  sources: []
-  project: aifaas
+  project: default
   syncPolicy:
     automated:
+      #apply file deletion from repo to kubernetes
       prune: true
+      #undo manual changes made by kubectl
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
