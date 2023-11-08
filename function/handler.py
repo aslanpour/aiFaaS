@@ -20,7 +20,7 @@ from time import time
 import urllib.request
 import requests
 import numpy as np
-from flask import json, make_response, jsonify
+from flask import json, make_response
 import datetime
 import socket
 import json
@@ -348,18 +348,7 @@ elif MODEL_PRE_LOAD == 'no':
 else:
     print('ERROR: MODEL_PRE_LOAD=' + MODEL_PRE_LOAD + ', but must be yes, no, or cpu-only.', flush=True)
 
-#function chain log_error start
-def log_error(error_message, request_id):
-    log_data = {'message': error_message, 'timestamp': str(datetime.datetime.now()), 'request_id': request_id }
-    log_url = request.headers.get('X-Logs-URL')
 
-    try:
-        response = requests.post(log_url, json=log_data)
-        if response.status_code != 200:
-            print(f"Failed to log error in Microservice1: {response.status_code}", flush=True)
-    except Exception as e:
-        print(f"Failed to log error in Microservice1: {str(e)}", flush=True)
-#function chain log_error end
 
 #restrict access to the main function by MODEL_CPU_WORKERS
 semaphore = threading.Semaphore(MODEL_CPU_WORKERS)
@@ -380,7 +369,7 @@ def handle(request, counter):
     global interpreter_cpu, floating_model_cpu, input_mean_cpu, input_std_cpu, input_details_cpu, output_details_cpu, boxes_idx_cpu, classes_idx_cpu,scores_idx_cpu, labels_cpu
     global interpreter_tpu, floating_model_tpu, input_mean_tpu, input_std_tpu, input_details_tpu, output_details_tpu, boxes_idx_tpu, classes_idx_tpu,scores_idx_tpu, labels_tpu
     global interpreter_gpu, labels_gpu
-    
+
 
     global semaphore
     
@@ -389,17 +378,6 @@ def handle(request, counter):
     error = ""
 
     start_main = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
-
-    #function chain input start
-    request_id = request.headers.get('X-Request-ID')
-    #set webhooks
-    webhooks = request.headers.get('X-Webhooks').split(',')
-    print(f"webhook lists: {webhooks}", flus=True)
-    next_url = webhooks[0]  # Get the first URL
-    print(f"next url to be selected from the webhook lists: {next_url}", flush=True)
-    webhooks = webhooks[1:]  # Remove the used URL from the list
-    print(f"remaining URLs from the webhook lists: {webhooks}", flush=True)
-    #function chain input end
 
     #Get latest config
     start = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
@@ -496,20 +474,6 @@ def handle(request, counter):
             else:
                 print('read image from request', flush=True)
                 file = request.files['image_file']
-                #function chain read image start
-                if 'image' not in request.files:
-                    error_message = 'No image provided, Microservice3'
-                    log_error(error_message, request_id)
-                    return jsonify({'error occurred in Microservice3': error_message, 'request_id':request_id})
-                else:
-                    file = request.files['image']
-                    Central_DB_url = request.headers.get('X-Central-DB-URL')
-                    log_url = request.headers.get('X-Logs-URL')
-
-                    print(f"central db url: {Central_DB_url}", flush=True)
-                    print(f"log url: {log_url}", flush=True)
-                #function chain read image end
-                
                 #image = cv2.imdecode(np.fromstring(file.read(), np.uint8), cv2.IMREAD_UNCHANGED)
                 raw_image = Image.open(file)
                 #req = urllib.request.Request(image_url)
@@ -773,8 +737,7 @@ def handle(request, counter):
     #inference total duration
     elapsed_inference = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp() - start
     # print('%.1fms total inference' % (elapsed_inference * 1000), file=sys.stdout)
-    end_time = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp()
-    elapsed_total = end_time - start_main
+    elapsed_total = datetime.datetime.now(datetime.timezone.utc).astimezone().timestamp() - start_main
 
     #get kubernetes service ip and port
     #if replica is created before service object, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT are set
@@ -823,49 +786,16 @@ def handle(request, counter):
         "X-POD-UID": os.getenv("POD_UID", None),
     } 
     
-    
     output={}
     output['detected_objects'] = detected_objects
     if request.headers.get('Header-Output'):
         output['Header-Output'] = headers
-
-    #function chain output start
-    time_data = {
-            'microservice': 'microservice3',
-            'start_time': str(start_main),
-            'end_time': str(end_time),
-            'processing_time': str(elapsed_total),
-            'request_id': request_id  # Add the request ID
-        }
-
-    response = requests.post(Central_DB_url, json=time_data)
-    if response.status_code != 200:
-        error_message = f"Error occurred in Microservice3 to post data to Central DB: {response.status_code}"
-        log_error(error_message, request_id)
-        print(error_message, flush=True)
-
-    headers = {
-        'X-End-Time': str(end_time),
-        'X-Webhooks': ','.join(webhooks),
-        'X-Central-DB-URL': Central_DB_url,
-        'X-Request-ID': request_id,
-        'X-Logs-URL': log_url
-    }
-
-    response = requests.post(next_url, json={'result': detected_objects}, headers=headers)
-    if response.status_code != 200:
-        error_message = f"Error occurred in Microservice3 to post data to Microservice4: {response.status_code}"
-        log_error(error_message,request_id)
-        print(error_message, flush=True)
-
-    #function chain output end
 
     response = make_response(json.dumps(output), 200, headers)
     response.mimetype = "application/json"
     if MODEL_RUN_ON == 'cpu':
         semaphore.release()
      
-
     #In case of async request, the response will be sent to the callback url given as header by queue-worker of OpenFaaS.
     return response, detected_objects, error
 
