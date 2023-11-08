@@ -823,6 +823,7 @@ def handle(request, counter):
         "X-POD-UID": os.getenv("POD_UID", None),
     } 
     
+    
     output={}
     output['detected_objects'] = detected_objects
     if request.headers.get('Header-Output'):
